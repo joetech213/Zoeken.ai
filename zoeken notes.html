@@ -1,0 +1,173 @@
+<!DOCTYPE html> 
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Zoeken Notes</title>
+<link rel="icon" href="logo.png">
+<style>
+  body {
+    font-family: 'Segoe UI', sans-serif;
+    margin: 0;
+    padding: 0;
+    background: linear-gradient(135deg, #f5f7fa, #c3cfe2);
+    color: #222;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  header {
+    background: #003366;
+    color: white;
+    padding: 12px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  header h1 {
+    font-size: 20px;
+    margin: 0;
+  }
+
+  .controls {
+    display: flex;
+    gap: 10px;
+  }
+
+  button {
+    border: none;
+    background: #0055cc;
+    color: white;
+    padding: 8px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: 0.3s;
+  }
+
+  button:hover {
+    background: #0077ff;
+  }
+
+  textarea {
+    flex: 1;
+    resize: none;
+    padding: 20px;
+    font-size: 16px;
+    border: none;
+    outline: none;
+    background: white;
+    border-top: 2px solid #ccc;
+  }
+
+  footer {
+    text-align: center;
+    font-size: 12px;
+    color: #666;
+    padding: 8px;
+  }
+
+  select {
+    border: none;
+    background: #0055cc;
+    color: white;
+    border-radius: 8px;
+    padding: 6px;
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>📝 Zoeken Notes</h1>
+  <div class="controls">
+    <button id="openBtn">📂 Open</button>
+    <button id="saveBtn">💾 Save</button>
+    <button id="pdfBtn">📄 Export PDF</button>
+    <button id="wordBtn">📝 Export Word</button>
+  </div>
+</header>
+
+<textarea id="noteArea" placeholder="Start typing your notes here..."></textarea>
+
+<footer>© 2025 Zoeken Notes — Smart Writing with Local Storage</footer>
+
+<!-- Libraries for export -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/docx/8.1.0/docx.min.js"></script>
+
+<script>
+  const noteArea = document.getElementById('noteArea');
+  const saveBtn = document.getElementById('saveBtn');
+  const pdfBtn = document.getElementById('pdfBtn');
+  const wordBtn = document.getElementById('wordBtn');
+  const openBtn = document.getElementById('openBtn');
+
+  // Load last note
+  window.onload = () => {
+    const saved = localStorage.getItem('zoekenNote');
+    if (saved) noteArea.value = saved;
+  };
+
+  // Auto-save while typing
+  noteArea.addEventListener('input', () => {
+    localStorage.setItem('zoekenNote', noteArea.value);
+  });
+
+  // Save with custom name
+  saveBtn.addEventListener('click', () => {
+    const name = prompt('Enter a name for this note:', 'My Note');
+    if (name) {
+      localStorage.setItem('note_' + name, noteArea.value);
+      localStorage.setItem('zoekenNote', noteArea.value);
+      alert(`✅ Saved as "${name}"`);
+    }
+  });
+
+  // Open saved note
+  openBtn.addEventListener('click', () => {
+    const keys = Object.keys(localStorage).filter(k => k.startsWith('note_'));
+    if (keys.length === 0) {
+      alert('⚠️ No saved notes found.');
+      return;
+    }
+
+    const names = keys.map(k => k.replace('note_', ''));
+    const choice = prompt('Available notes:\n' + names.join('\n') + '\n\nType the name to open:');
+    if (choice && localStorage.getItem('note_' + choice)) {
+      noteArea.value = localStorage.getItem('note_' + choice);
+      alert(`📂 Opened "${choice}"`);
+    } else if (choice) {
+      alert('❌ No note found by that name.');
+    }
+  });
+
+  // Export as PDF
+  pdfBtn.addEventListener('click', () => {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    const text = noteArea.value || "(empty note)";
+    const lines = doc.splitTextToSize(text, 180);
+    doc.text(lines, 10, 10);
+    doc.save('Zoeken_Note.pdf');
+  });
+
+  // Export as Word
+  wordBtn.addEventListener('click', async () => {
+    const { Document, Packer, Paragraph, TextRun } = window.docx;
+    const paragraphs = noteArea.value
+      .split('\n')
+      .map(line => new Paragraph({ children: [new TextRun(line)] }));
+
+    const doc = new Document({ sections: [{ properties: {}, children: paragraphs }] });
+    const blob = await Packer.toBlob(doc);
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'Zoeken_Note.docx';
+    a.click();
+    URL.revokeObjectURL(url);
+  });
+</script>
+</body>
+</html>

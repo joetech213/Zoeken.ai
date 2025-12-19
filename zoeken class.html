@@ -1,0 +1,780 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <link rel="icon" href="logo.png">
+  <title>AI Classroom — Zoeken</title>
+  <style>
+    :root{
+      --bg:#ffffff;
+      --muted:#5f6368;
+      --accent:#1a73e8;
+      --card:#ffffff;
+      --glass: rgba(60,64,67,0.04);
+      --radius:12px;
+      --shadow: 0 6px 18px rgba(60,64,67,0.07);
+      font-family: 'Roboto', system-ui, -apple-system, 'Segoe UI', 'Helvetica Neue', Arial;
+      color:#202124;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%;margin:0;background:var(--bg);-webkit-font-smoothing:antialiased}
+    .topbar{position:sticky;top:0;z-index:40;background:var(--bg);border-bottom:1px solid rgba(0,0,0,0.06);display:flex;align-items:center;justify-content:center;padding:12px 0}
+    .topbar-inner{width:100%;max-width:1100px;display:flex;align-items:center;gap:18px;padding:0 18px}
+    .logo{width:56px;height:56px;border-radius:12px;overflow:hidden;display:flex;align-items:center;justify-content:center}
+    .logo img{width:100%;height:100%;object-fit:contain}
+    .search-wrap{flex:1}
+    .search-box{display:flex;align-items:center;border-radius:999px;padding:10px 14px;border:1px solid rgba(0,0,0,0.08);background:var(--card);gap:10px}
+    .search-box input{flex:1;border:0;outline:none;font-size:16px;padding:6px;background:transparent;color:inherit}
+    .btn{border:0;padding:8px 12px;border-radius:8px;cursor:pointer;background:transparent;font-weight:600;color:var(--accent)}
+    .btn.primary{background:var(--accent);color:white;border-radius:999px;padding:10px 16px}
+    .container{display:flex;justify-content:center;padding:20px}
+    .card{width:100%;max-width:1100px;padding:18px;border-radius:12px;box-shadow:var(--shadow);background:transparent}
+    .tabs{display:flex;gap:18px;border-bottom:1px solid rgba(0,0,0,0.06);padding-bottom:12px;margin-top:12px}
+    .tab{padding:8px 10px;cursor:pointer;border-radius:8px;color:var(--muted)}
+    .tab.active{color:var(--accent);font-weight:600;border-bottom:3px solid var(--accent);background:transparent}
+    .content{margin-top:18px;min-height:320px}
+    @media (max-width: 600px) {
+      .topbar-inner {flex-direction: column;align-items: stretch;gap: 10px;padding: 10px;}
+      .logo {width: 48px;height: 48px;margin: 0 auto;}
+      .search-box {flex-direction: row;gap: 6px;padding: 8px 12px;}
+      .search-box input {font-size: 15px;}
+      .btn.primary {padding: 8px 12px;font-size: 14px;}
+      .tabs {overflow-x: auto;white-space: nowrap;gap: 10px;padding-bottom: 8px;scrollbar-width: none;} 
+      .tabs::-webkit-scrollbar {display: none;} 
+      .tab {flex-shrink: 0;font-size: 14px;padding: 6px 8px;}
+      .container {padding: 10px;}
+      .card {padding: 12px;}
+      .grid {grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));}
+      .video-grid {grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));}
+      .video-card iframe {height: 150px;}
+      .book img {width: 56px;height: 80px;}
+      .news-card img {width: 100px;height: 60px;}
+      #imagePreviewModal > div {width: 95%;max-width: 380px;padding: 6px;}
+      .img-caption {font-size: 12px;}
+    }
+
+    .result{padding:14px;border-radius:10px;border:1px solid rgba(0,0,0,0.04);margin-bottom:12px;background:linear-gradient(180deg, rgba(255,255,255,0.6), var(--card))}
+    .r-title{font-weight:600;font-size:16px;color:#1a0dab}
+    .r-link{font-size:13px;color:var(--muted);margin-bottom:6px}
+    .r-snippet{color:#3c4043;margin-top:8px}
+    .ai-card{padding:14px;border-radius:10px;border:1px solid rgba(26,115,232,0.12);margin-bottom:12px;background:linear-gradient(180deg, rgba(237,246,255,0.6), #fff)}
+    .ai-title{font-weight:700;color:var(--accent);margin-bottom:6px}
+    .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px}
+    .img-card{border-radius:8px;overflow:hidden;background:var(--glass);display:flex;flex-direction:column;cursor:pointer;min-height:140px}
+    .img-card img{Width:100%;height:120px;object-fit:cover;display:block}
+    .img-caption{padding:8px;font-size:13px;color:var(--muted)}
+    .video-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}
+    .video-card{border-radius:8px;overflow:hidden;background:var(--glass);display:flex;flex-direction:column;min-height:180px}
+    .video-card iframe{width:100%;height:180px;border:0}
+    .video-title{padding:8px;font-size:13px;color:var(--muted)}
+    #micBtn {background: transparent;border: none;font-size: 20px;cursor: pointer;color: var(--muted);transition: color 0.2s ease}
+    #micBtn.listening {color: red}
+
+    .dropdown-grid {position: absolute;top: 100%;left: 0;background: white;border: 1px solid rgba(0,0,0,0.1);border-radius: 12px;box-shadow: 0 4px 12px rgba(0,0,0,0.15);display: grid;grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));gap: 16px;padding: 16px;z-index: 50;min-width: 300px}
+    .grid-item {display: flex;flex-direction: column;align-items: center;text-decoration: none;color: #202124;font-weight: 500;transition: background 0.2s;padding: 8px;border-radius: 8px}
+    .grid-item:hover {background: rgba(26,115,232,0.1)}
+    .grid-item img {width: 48px;height: 48px;object-fit: contain;margin-bottom: 6px}
+
+    .book-list{display:flex;flex-direction:column;gap:10px}
+    .book{display:flex;gap:12px;align-items:flex-start;padding:10px;border-radius:8px;border:1px solid rgba(0,0,0,0.04)}
+    .book img{width:72px;height:100px;object-fit:cover;border-radius:6px;background:#f1f3f4}
+    .book .meta .title{font-weight:600}
+    .book .meta .author{color:var(--muted);font-size:13px;margin-top:6px}
+    .news-list{display:flex;flex-direction:column;gap:10px}
+    .news-card{display:flex;gap:12px;align-items:flex-start;padding:10px;border-radius:8px;border:1px solid rgba(0,0,0,0.04)}
+    .news-card img{width:120px;height:72px;object-fit:cover;border-radius:6px;background:#f1f3f4}
+    .news-card .meta .headline{font-weight:600}
+    .news-card .meta .source{color:var(--muted);font-size:13px;margin-top:6px}
+    .small{color:var(--muted);font-size:13px}
+    .math-font {
+  font-family: 'Cambria Math', 'Latin Modern Math', serif;
+  font-size: 17px;
+}
+
+
+    .controls{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+    select,input[type=text],textarea{padding:8px;border-radius:8px;border:1px solid rgba(0,0,0,0.08);outline:none;font-size:14px;background:var(--card)}
+    .flex-row{display:flex;gap:12px}
+    .classroom{display:grid;grid-template-columns:2fr 1fr;gap:12px;margin-top:12px}
+    .chat{background:var(--card);border-radius:12px;padding:12px;min-height:420px;display:flex;flex-direction:column}
+    .messages{overflow:auto;padding:8px;display:flex;flex-direction:column;gap:8px}
+    .message{max-width:80%;padding:10px;border-radius:12px;box-shadow:var(--shadow);word-break:break-word}
+    .message.student{align-self:flex-end;background:linear-gradient(180deg,#e8f0fe,#fff);border:1px solid rgba(26,115,232,0.12);color:#0b2447}
+    .message.teacher{align-self:flex-start;background:linear-gradient(180deg,#fff,#f7fbff);border:1px solid rgba(0,0,0,0.04)}
+    .meta{font-size:12px;color:var(--muted);margin-bottom:6px}
+    .composer{display:flex;gap:8px;padding:8px;border-top:1px solid rgba(0,0,0,0.04);align-items:center}
+    textarea#question{flex:1;min-height:48px;resize:vertical}
+    .sidebar{background:var(--card);border-radius:12px;padding:12px}
+    .lesson-header{font-weight:700;margin-bottom:8px}
+    .small-muted{font-size:13px;color:var(--muted)}
+    .pill{display:inline-block;padding:6px 8px;border-radius:999px;border:1px solid rgba(0,0,0,0.06);font-weight:600}
+    .download-btn{display:inline-block;margin-top:8px}
+    @media (max-width:900px){
+      .classroom{grid-template-columns:1fr}
+    }
+    .controls .right { margin-left: auto; display:flex; gap:8px; align-items:center}
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <div class="topbar-inner">
+      <div class="logo"><img src="logo.png" alt="Zoeken logo"></div>
+      <div style="flex:1">
+        <div class="small-muted">AI Classroom — choose level, class, subject and term, then Start Class</div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <!-- Hidden on-screen API key & role per user's request.
+             For quick demos place your key in the JS variable OPENAI_KEY below.
+             WARNING: embedding real keys in client-side code is insecure for production. -->
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="card">
+      <div class="controls">
+        <div class="flex-row">
+          <label class="small-muted" style="margin-right:6px">Level</label>
+          <select id="levelSelect">
+            <option value="primary">Primary</option>
+            <option value="jss">Junior Secondary (JSS)</option>
+            <option value="ss">Senior Secondary (SS)</option>
+          </select>
+        </div>
+
+        <div class="flex-row">
+          <label class="small-muted" style="margin-right:6px">Class</label>
+          <select id="classSelect"></select>
+        </div>
+
+        <div style="flex:1;min-width:200px">
+          <label class="small-muted">Subject</label>
+          <select id="courseSelect" style="width:100%"></select>
+        </div>
+
+        <div style="min-width:160px">
+          <label class="small-muted">Term</label>
+          <select id="termSelect">
+            <option value="1">Term 1 — (2 months)</option>
+            <option value="2">Term 2 — (2 months)</option>
+            <option value="3">Term 3 — (2 months)</option>
+          </select>
+        </div>
+<div style="min-width:160px">
+  <label class="small-muted">Understanding</label>
+  <select id="understandingSelect">
+    <option value="beginner">Beginner</option>
+    <option value="normal" selected>Normal</option>
+    <option value="advanced">Advanced</option>
+  </select>
+</div>
+
+        <div class="right">
+          <button id="startBtn" class="btn primary">Start Class</button>
+          <button id="saveBtn" class="btn">Save Class</button>
+          <button id="resumeBtn" class="btn">Restore Last Save</button>
+        </div>
+      </div>
+
+      <div class="classroom">
+        <div class="chat">
+          <div class="lesson-header">Classroom</div>
+          <div id="messages" class="messages" aria-live="polite"></div>
+
+          <div class="composer" style="flex-direction:column;gap:8px">
+            <div style="display:flex;gap:8px;width:100%;align-items:center">
+              <textarea id="question" placeholder="Type a question (students ask here)..."></textarea>
+              <div style="display:flex;flex-direction:column;gap:6px">
+                <button id="askBtn" class="btn primary">Ask</button>
+                <button id="nextBtn" class="btn">Next Lesson</button>
+                <label class="small-muted" style="font-size:12px;margin-top:6px">
+                  <input type="checkbox" id="autoPlay"> Auto-play lessons
+                </label>
+              </div>
+            </div>
+            <div style="display:flex;gap:8px;justify-content:flex-end;width:100%">
+              <button id="exportBtn" class="btn">Export lesson</button>
+              <button id="clearBtn" class="btn">Clear</button>
+            </div>
+          </div>
+        </div>
+
+        <aside class="sidebar">
+          <div class="lesson-header">Lesson info</div>
+          <div><strong>Level:</strong> <span id="metaLevel" class="pill">—</span></div>
+          <div style="margin-top:8px"><strong>Class:</strong> <span id="metaClass" class="pill">—</span></div>
+          <div style="margin-top:8px"><strong>Subject:</strong> <span id="metaSubject" class="pill">—</span></div>
+          <div style="margin-top:8px"><strong>Term:</strong> <span id="metaTerm" class="pill">—</span></div>
+          <div style="margin-top:12px">
+            <div class="small-muted">Progress</div>
+            <div style="margin-top:6px"><strong>Lesson:</strong> <span id="metaLesson" class="pill">—</span></div>
+            <div style="margin-top:6px"><strong>Saved:</strong> <span id="metaSaved" class="small-muted">No</span></div>
+          </div>
+
+          <div style="margin-top:12px">
+            <div class="small-muted">Notes</div>
+            <div style="font-size:13px;color:var(--muted);margin-top:6px">The OpenAI key and role are embedded in the page script as requested (change variables in the script). For production, host the key on a server and proxy requests—do not ship secrets in client JavaScript.</div>
+          </div>
+        </aside>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /*************************************************************************
+     * CONFIG - Hidden key & role (edit these values in the code)
+     *
+     * IMPORTANT: The user requested the key & role be written in the code
+     * and not shown on screen. For quick demos set OPENAI_KEY here.
+     *
+     * SECURITY WARNING: embedding real API keys in client-side code is
+     * insecure. For production, keep keys server-side and call a proxy.
+     *************************************************************************/
+    const OPENAI_KEY = "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"; // <-- put your key here for demos (not recommended for prod)
+    const SYSTEM_ROLE = "You are Zoeken AI, a friendly, concise teacher. Explain step-by-step, provide classwork and homework, and adapt to the learner's level."; // <-- edit role here
+
+    // --- Curriculum data (keeps your original lists) ---
+    const SUBJECTS = {
+      primary: [
+        "English Studies (English Language)",
+        "Mathematics",
+        "Basic Science and Technology (BST)",
+        "Basic Science",
+        "Basic Technology",
+        "Information and Communication Technology (ICT / Computer Studies)",
+        "Physical and Health Education (PHE)",
+        "National Values Education",
+        "Civic Education",
+        "Social Studies",
+        "Security Education",
+        "Cultural and Creative Arts (CCA)",
+        "Music",
+        "Fine Art",
+        "Drama / Performing Arts",
+        "Nigerian Language (Yoruba / Igbo / Hausa / Efik / Tiv / etc.)",
+        "French Language",
+        "Christian Religious Studies (CRS)",
+        "Islamic Religious Studies (IRS)",
+        "Agricultural Science",
+        "Home Economics",
+        "Entrepreneurial Studies / Handwork",
+        "Phonics",
+        "Spelling",
+        "Reading / Library Studies",
+        "Coding and Robotics",
+        "Mental Mathematics",
+        "Etiquette and Character Education",
+        "Chinese"
+      ],
+      jss: [
+        "English Language",
+        "Mathematics",
+        "Basic Science",
+        "Basic Technology",
+        "Computer Studies / ICT",
+        "Business Studies",
+        "Social Studies",
+        "Civic Education",
+        "Agricultural Science",
+        "Cultural and Creative Arts (CCA)",
+        "Physical and Health Education (PHE)",
+        "Nigerian Language",
+        "French Language",
+        "Home Economics",
+        "Entrepreneurship / Trade Skills",
+        "Technical Drawing",
+        "Coding / Robotics",
+        "Music",
+        "Environmental Studies",
+        "Security Education",
+        "Moral Instruction",
+        "History",
+        "Chinese"
+      ],
+      ss: [
+        "English Language",
+        "Mathematics",
+        "Civic Education",
+        "Nigerian Language",
+        "Physics",
+        "Chemistry",
+        "Biology",
+        "Geography",
+        "Agricultural Science",
+        "Further Mathematics",
+        "Technical Drawing",
+        "Computer Studies / ICT",
+        "Health Science",
+        "Literature in English",
+        "Government",
+        "History",
+        "Christian Religious Studies (CRS)",
+        "Fine Art / Visual Art",
+        "Music",
+        "French Language",
+        "Economics",
+        "Accounting",
+        "Commerce",
+        "Office Practice",
+        "Insurance",
+        "Marketing",
+        "Business Studies",
+        "Chinese",
+        "Typewriting / Data Processing",
+        "Technical / Vocational Subjects (e.g., Metalwork, Woodwork, Auto Mechanics, Plumbing, Welding)"
+      ]
+    };
+
+    // --- DOM refs ---
+    const levelSelect = document.getElementById('levelSelect');
+    const classSelect = document.getElementById('classSelect');
+    const courseSelect = document.getElementById('courseSelect');
+    const termSelect = document.getElementById('termSelect');
+    const startBtn = document.getElementById('startBtn');
+    const messagesEl = document.getElementById('messages');
+    const askBtn = document.getElementById('askBtn');
+    const questionEl = document.getElementById('question');
+    const metaLevel = document.getElementById('metaLevel');
+    const metaClass = document.getElementById('metaClass');
+    const metaSubject = document.getElementById('metaSubject');
+    const metaTerm = document.getElementById('metaTerm');
+    const metaLesson = document.getElementById('metaLesson');
+    const metaSaved = document.getElementById('metaSaved');
+    const exportBtn = document.getElementById('exportBtn');
+    const clearBtn = document.getElementById('clearBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    const autoPlayChk = document.getElementById('autoPlay');
+    const saveBtn = document.getElementById('saveBtn');
+    const resumeBtn = document.getElementById('resumeBtn');
+
+    // --- State ---
+let classState = {
+  started: false,
+  level: null,
+  className: null,
+  subject: null,
+  term: 1,
+  understanding: 'normal',
+  lessonIndex: 0,
+  messages: []
+};
+
+
+    const LESSONS_PER_TERM = 8; // approximate "weeks" in the 2-month term -> 8 lessons
+
+    // localStorage key for save/restore
+    const STORAGE_KEY = 'zoeken_saved_class_v1';
+
+    // --- populate selects ---
+    function populateClasses(level){
+      classSelect.innerHTML = '';
+      let opts = [];
+      if(level === 'primary') opts = ['P1','P2','P3','P4','P5','P6'];
+      else if(level === 'jss') opts = ['JSS1','JSS2','JSS3'];
+      else if(level === 'ss') opts = ['SS1','SS2','SS3'];
+      opts.forEach(o=>{
+        const el = document.createElement('option'); el.value = o; el.textContent = o; classSelect.appendChild(el);
+      });
+    }
+    function populateSubjects(level){
+      courseSelect.innerHTML = '';
+      const arr = SUBJECTS[level] || [];
+      arr.forEach(s=>{
+        const o = document.createElement('option'); o.value = s; o.textContent = s; courseSelect.appendChild(o);
+      });
+    }
+    levelSelect.addEventListener('change', ()=>{
+      const level = levelSelect.value;
+      populateClasses(level);
+      populateSubjects(level);
+    });
+    populateClasses(levelSelect.value);
+    populateSubjects(levelSelect.value);
+
+    // --- messaging helpers ---
+    function appendTeacherMessage(text){
+      const el = document.createElement('div'); el.className = 'message teacher'; el.dataset.who = 'teacher'; el.innerHTML = formatMarkdownLike(text); messagesEl.appendChild(el); messagesEl.scrollTop = messagesEl.scrollHeight;
+      classState.messages.push({who:'teacher', text, ts: Date.now()}); updateMetaSaved(false);
+    }
+    function appendStudentMessage(text){
+      const el = document.createElement('div'); el.className = 'message student'; el.dataset.who = 'student'; el.textContent = text; messagesEl.appendChild(el); messagesEl.scrollTop = messagesEl.scrollHeight;
+      classState.messages.push({who:'student', text, ts: Date.now()}); updateMetaSaved(false);
+    }
+    function appendSystemMessage(text){
+      const el = document.createElement('div'); el.className = 'message teacher'; el.dataset.who = 'system'; el.textContent = text; messagesEl.appendChild(el); messagesEl.scrollTop = messagesEl.scrollHeight;
+      classState.messages.push({who:'system', text, ts: Date.now()}); updateMetaSaved(false);
+    }
+    function formatMarkdownLike(s){
+      // convert newlines to <br>, keep basic numeric list formatting
+      const escaped = escapeHtml(s).replace(/\n/g, '<br/>');
+      return escaped;
+    }
+    function escapeHtml(t){ return t.replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+    // --- lesson generation logic ---
+    function basicLessonTemplate(level, className, subject, term, idx){
+      // idx is zero-based (0..LESSONS_PER_TERM-1)
+      const week = idx + 1;
+      const topic = `${subject} — Term ${term} — Week ${week}: Core concept`;
+      const explanation = [
+        `1. Introduce the core idea of the topic and state its purpose.`,
+        `2. Demonstrate with simple examples that fit ${className} learners.`,
+        `3. Summarize the main points in one sentence.`
+      ].join('\n');
+      const classwork = [
+        `• Explain the topic in your own words (1 paragraph).`,
+        `• Do one simple example applying the concept.`,
+        `• Draw or list 3 key terms and definitions.`
+      ].join('\n');
+      const homework = [
+        `• Complete 3 short questions about this topic.`,
+        `• Prepare a 2-minute oral summary for the next lesson.`
+      ].join('\n');
+      return `Topic: ${topic}\n\nExplanation:\n${explanation}\n\nClasswork:\n${classwork}\n\nHomework:\n${homework}`;
+    }
+
+async function generateLesson(level, className, subject, term, idx) {
+  const understanding = document.getElementById('understandingSelect').value;
+  classState.understanding = understanding;
+
+  // Auto-change font for math subjects
+  const chatBox = document.querySelector('.chat');
+  if (subject.toLowerCase().includes('math')) {
+    chatBox.classList.add('math-font');
+  } else {
+    chatBox.classList.remove('math-font');
+  }
+
+  if (OPENAI_KEY && OPENAI_KEY !== 'REPLACE_WITH_YOUR_OPENAI_KEY') {
+    try {
+      const system = SYSTEM_ROLE || "You are a patient, structured teacher.";
+      const userPrompt = `
+You are teaching ${subject} to ${level} ${className} students (Term ${term}, Lesson ${idx + 1}). 
+Their understanding level is ${understanding}.
+Write a full detailed lesson that includes:
+1. A clear topic title and short objective.
+2. Step-by-step explanation (3–6 steps depending on level).
+3. Examples or practice questions (include solutions if advanced).
+4. Classwork (3 activities).
+5. Homework (2–3 tasks).
+Make it sound like a real homeschool teacher and explain in a natural, engaging tone.
+      `;
+      return await callOpenAIChat(OPENAI_KEY, system, userPrompt);
+    } catch (err) {
+      console.warn('OpenAI failed, falling back to local generator:', err);
+      return basicLessonTemplate(level, className, subject, term, idx);
+    }
+  } else {
+    return basicLessonTemplate(level, className, subject, term, idx);
+  }
+}
+
+
+    // --- OpenAI call (same pattern as before) ---
+    async function callOpenAIChat(apiKey, systemPrompt, userPrompt){
+      const payload = {
+        model: 'gpt-4o-mini',
+        messages: [
+          {role: 'system', content: systemPrompt},
+          {role: 'user', content: userPrompt}
+        ],
+        temperature: 0.2,
+        max_tokens: 700
+      };
+
+      const res = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if(!res.ok){
+        const t = await res.text(); throw new Error(`OpenAI error ${res.status}: ${t}`);
+      }
+      const data = await res.json();
+      const text = data?.choices?.[0]?.message?.content;
+      if(!text) throw new Error('No content from OpenAI');
+      return text;
+    }
+
+    // --- Start / Flow control ---
+    let autoPlayIntervalId = null;
+
+    startBtn.addEventListener('click', async ()=>{
+      classState.started = true;
+      classState.level = levelSelect.value;
+      classState.className = classSelect.value;
+      classState.subject = courseSelect.value;
+      classState.term = parseInt(termSelect.value, 10) || 1;
+      classState.lessonIndex = 0;
+      metaLevel.textContent = levelSelect.options[levelSelect.selectedIndex].text;
+      metaClass.textContent = classState.className;
+      metaSubject.textContent = classState.subject;
+      metaTerm.textContent = `Term ${classState.term}`;
+      updateMetaLesson();
+      messagesEl.innerHTML = '';
+      classState.messages = [];
+
+      appendSystemMessage(`Class started — ${metaLevel.textContent} | ${classState.className} | ${classState.subject} | Term ${classState.term}`);
+      appendTeacherMessage(`Good day! I will teach ${classState.subject} for ${classState.className}. We will cover Term ${classState.term} (approx. ${LESSONS_PER_TERM} lessons).`);
+
+      // Immediately deliver the first lesson automatically (user requested teacher doesn't wait for question)
+      await deliverCurrentLesson();
+
+      // if auto-play selected, start interval
+      if(autoPlayChk.checked){
+        startAutoPlay();
+      }
+    });
+
+    async function deliverCurrentLesson(){
+      const { level, className, subject, term, lessonIndex } = classState;
+      if(lessonIndex >= LESSONS_PER_TERM){
+        appendTeacherMessage(`You've completed all ${LESSONS_PER_TERM} lessons for Term ${term}.`);
+        return;
+      }
+      appendTeacherMessage('Preparing lesson...');
+      try{
+        const lessonText = await generateLesson(level, className, subject, term, lessonIndex);
+        // Remove the temporary 'Preparing lesson...' message
+        const temp = Array.from(messagesEl.querySelectorAll('.message.teacher')).pop();
+        if(temp && temp.textContent === 'Preparing lesson...') temp.remove();
+        appendTeacherMessage(lessonText);
+        updateMetaLesson();
+      }catch(err){
+        console.error(err);
+        appendTeacherMessage('Sorry — there was an error preparing the lesson. Using fallback.');
+        const fallback = basicLessonTemplate(level, className, subject, term, lessonIndex);
+        appendTeacherMessage(fallback);
+        updateMetaLesson();
+      }
+    }
+
+    nextBtn.addEventListener('click', async ()=>{
+      if(!classState.started){ alert('Please start the class first.'); return; }
+      if(classState.lessonIndex < LESSONS_PER_TERM - 1){
+        classState.lessonIndex += 1;
+        await deliverCurrentLesson();
+      }else{
+        classState.lessonIndex = LESSONS_PER_TERM; // mark complete
+        appendTeacherMessage('End of term — no more lessons in this term.');
+        updateMetaLesson();
+        stopAutoPlay();
+      }
+    });
+
+    function updateMetaLesson(){
+      if(classState.lessonIndex >= LESSONS_PER_TERM){
+        metaLesson.textContent = `Completed (${LESSONS_PER_TERM})`;
+      }else{
+        metaLesson.textContent = `${classState.lessonIndex + 1} / ${LESSONS_PER_TERM}`;
+      }
+    }
+
+    autoPlayChk.addEventListener('change', ()=>{
+      if(autoPlayChk.checked) startAutoPlay(); else stopAutoPlay();
+    });
+
+    function startAutoPlay(){
+      stopAutoPlay();
+      autoPlayIntervalId = setInterval(async ()=>{
+        if(!classState.started) return;
+        if(classState.lessonIndex >= LESSONS_PER_TERM - 1){
+          stopAutoPlay();
+          appendTeacherMessage('Auto-play finished the term lessons.');
+          return;
+        }
+        classState.lessonIndex += 1;
+        await deliverCurrentLesson();
+      }, 6000); // auto-advance every 6 seconds (adjustable in code)
+    }
+    function stopAutoPlay(){
+      if(autoPlayIntervalId){ clearInterval(autoPlayIntervalId); autoPlayIntervalId = null; }
+    }
+
+    // --- student question handling (students may still ask) ---
+    askBtn.addEventListener('click', ()=>{ handleQuestion(); });
+    questionEl.addEventListener('keydown', (e)=>{ if(e.key === 'Enter' && (e.ctrlKey || e.metaKey)) handleQuestion(); });
+
+    async function handleQuestion(){
+      const q = questionEl.value.trim();
+      if(!q) return;
+      if(!classState.started){ alert('Please start the class first.'); return; }
+      appendStudentMessage(q);
+      questionEl.value = '';
+
+      appendTeacherMessage('Thinking about your question...');
+      // Build user prompt for question response
+      const systemPrompt = SYSTEM_ROLE || "You are a teacher.";
+      const userPrompt = `You are teaching ${classState.subject} to ${metaLevel.textContent} (${classState.className}). A student asks: "${q}"\n\nRespond with:\n1) Brief step-by-step explanation (numbered),\n2) Classwork (2 short tasks),\n3) Homework (1 task).\nKeep the whole answer concise and beginner-friendly.`;
+
+      if(OPENAI_KEY && OPENAI_KEY !== 'REPLACE_WITH_YOUR_OPENAI_KEY'){
+        try{
+          const aiText = await callOpenAIChat(OPENAI_KEY, systemPrompt, userPrompt);
+          // remove the temporary 'Thinking...' message (last teacher message)
+          const temp = Array.from(messagesEl.querySelectorAll('.message.teacher')).pop();
+          if(temp && temp.textContent === 'Thinking about your question...') temp.remove();
+          appendTeacherMessage(aiText);
+        }catch(err){
+          console.error(err);
+          const temp = Array.from(messagesEl.querySelectorAll('.message.teacher')).pop();
+          if(temp && temp.textContent === 'Thinking about your question...') temp.remove();
+          appendTeacherMessage('Sorry — there was an error calling the OpenAI API. Using fallback response.');
+          appendTeacherMessage(generateFallback(q));
+        }
+      }else{
+        // fallback
+        const temp = Array.from(messagesEl.querySelectorAll('.message.teacher')).pop();
+        if(temp && temp.textContent === 'Thinking about your question...') temp.remove();
+        appendTeacherMessage(generateFallback(q));
+      }
+    }
+
+    function generateFallback(question){
+      const explanation = [
+        `1. Read the question and find the main idea (topic: ${classState.subject}).`,
+        '2. Break the idea into 2–3 simple steps and give a short example.',
+        '3. Summarize in one sentence.'
+      ].join('\n');
+
+      const classwork = [
+        `• Explain the answer in one paragraph.`,
+        `• Try one short example applying the steps above.`
+      ].join('\n');
+
+      const homework = [
+        '• Finish 2 short related questions and bring answers to class.'
+      ].join('\n');
+
+      return `Explanation:\n${explanation}\n\nClasswork:\n${classwork}\n\nHomework:\n${homework}`;
+    }
+
+    // --- save / restore ---
+    saveBtn.addEventListener('click', ()=>{ saveClassToStorage(); });
+    resumeBtn.addEventListener('click', ()=>{ restoreFromStorage(true); });
+
+    function saveClassToStorage(){
+      const payload = {
+        level: classState.level,
+        className: classState.className,
+        subject: classState.subject,
+        term: classState.term,
+        lessonIndex: classState.lessonIndex,
+        messages: classState.messages,
+        ts: Date.now()
+      };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+      metaSaved.textContent = 'Yes';
+      updateMetaSaved(true);
+      alert('Class saved — teacher will know where to start next time.');
+    }
+
+    function updateMetaSaved(saved){
+      metaSaved.textContent = saved ? 'Yes' : 'No';
+    }
+
+    function restoreFromStorage(announce=false){
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if(!raw){
+        if(announce) alert('No saved class found.');
+        return;
+      }
+      try{
+        const payload = JSON.parse(raw);
+        // restore selects based on saved data (if available)
+        if(payload.level){
+          levelSelect.value = payload.level;
+          populateClasses(payload.level);
+          populateSubjects(payload.level);
+        }
+        if(payload.className) classSelect.value = payload.className;
+        if(payload.subject) courseSelect.value = payload.subject;
+        if(payload.term) termSelect.value = String(payload.term);
+
+        // restore state
+        classState.started = true;
+        classState.level = payload.level;
+        classState.className = payload.className;
+        classState.subject = payload.subject;
+        classState.term = payload.term;
+        classState.lessonIndex = payload.lessonIndex || 0;
+        classState.messages = payload.messages || [];
+
+        // render messages
+        messagesEl.innerHTML = '';
+        (classState.messages || []).forEach(m=>{
+          if(m.who === 'student'){
+            const el = document.createElement('div'); el.className = 'message student'; el.textContent = m.text; messagesEl.appendChild(el);
+          }else{
+            const el = document.createElement('div'); el.className = 'message teacher'; el.innerHTML = formatMarkdownLike(m.text); messagesEl.appendChild(el);
+          }
+        });
+        messagesEl.scrollTop = messagesEl.scrollHeight;
+
+        metaLevel.textContent = levelSelect.options[levelSelect.selectedIndex].text;
+        metaClass.textContent = classState.className;
+        metaSubject.textContent = classState.subject;
+        metaTerm.textContent = `Term ${classState.term}`;
+        updateMetaLesson();
+        metaSaved.textContent = 'Yes';
+        if(announce) alert('Saved class restored.');
+      }catch(err){
+        console.error('Restore failed', err);
+        if(announce) alert('Failed to restore saved class.');
+      }
+    }
+
+    // restore automatically on load if there is a saved class
+    window.addEventListener('load', ()=>{
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if(raw){
+        try{
+          // quick non-intrusive restore: populate fields and show a short notice in messages
+          const payload = JSON.parse(raw);
+          if(payload.level){
+            levelSelect.value = payload.level;
+            populateClasses(payload.level);
+            populateSubjects(payload.level);
+          }
+          if(payload.className) classSelect.value = payload.className;
+          if(payload.subject) courseSelect.value = payload.subject;
+          if(payload.term) termSelect.value = String(payload.term);
+          // show that a saved class exists
+          const el = document.createElement('div'); el.className = 'message teacher'; el.innerHTML = `Saved class detected (${payload.subject} — ${payload.className} — Term ${payload.term}). Click "Restore Last Save" to resume.`; messagesEl.appendChild(el);
+          metaSaved.textContent = 'Yes';
+        }catch(e){ console.warn('Could not inspect saved class'); }
+      }
+    });
+
+    // --- export / clear ---
+    exportBtn.addEventListener('click', ()=>{
+      const lines = Array.from(messagesEl.querySelectorAll('.message')).map(m => {
+        const who = m.dataset.who || 'msg';
+        return `${who.toUpperCase()}: ${m.textContent.trim()}`;
+      }).join('\n\n');
+      const blob = new Blob([lines], {type: 'text/plain'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url; a.download = `${classState.subject || 'lesson'}.txt`; a.click(); URL.revokeObjectURL(url);
+    });
+
+    clearBtn.addEventListener('click', ()=>{
+      if(!confirm('Clear the classroom and reset state?')) return;
+      messagesEl.innerHTML = '';
+      classState = { started:false, level:null, className:null, subject:null, term:1, lessonIndex:0, messages:[] };
+      metaLevel.textContent = '—'; metaClass.textContent = '—'; metaSubject.textContent = '—'; metaTerm.textContent = '—'; metaLesson.textContent = '—'; metaSaved.textContent = 'No';
+      stopAutoPlay();
+    });
+
+    // --- small UX niceties ---
+    // prevent accidental form submission on Enter
+    document.addEventListener('keydown', (e)=>{
+      if(e.key === 'Enter' && e.target && e.target.tagName === 'INPUT') e.preventDefault();
+    });
+
+  </script>
+</body>
+</html>

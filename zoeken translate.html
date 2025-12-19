@@ -1,0 +1,359 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Zoeken Translate — Google style</title>
+<link rel="icon" href="logo.png" />
+<style>
+/* Google Translate inspired UI — responsive, clean, two-pane layout */
+:root{
+  --bg: #f8f9fa;
+  --card: #ffffff;
+  --muted: #5f6368;
+  --accent: #1a73e8;
+  --shadow: 0 8px 24px rgba(60,64,67,0.08);
+  --radius: 12px;
+  font-family: 'Roboto', system-ui, -apple-system, 'Segoe UI', 'Helvetica Neue', Arial;
+  color: #202124;
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;background:var(--bg);-webkit-font-smoothing:antialiased}
+.header{display:flex;align-items:center;justify-content:center;padding:20px 16px}
+.brand{display:flex;gap:12px;align-items:center}
+.logo{width:40px;height:40px;border-radius:8px;overflow:hidden;background:var(--card);display:flex;align-items:center;justify-content:center;box-shadow:var(--shadow)}
+.brand h1{font-size:18px;margin:0;font-weight:600}
+.app{max-width:1100px;margin:12px auto;padding:20px}
+.panel-wrap{display:grid;grid-template-columns:1fr 80px 1fr;gap:16px;align-items:start}
+.panel{background:var(--card);border-radius:12px;padding:12px;box-shadow:var(--shadow)}
+.lang-bar{display:flex;gap:8px;align-items:center;margin-bottom:8px}
+.select{display:flex;align-items:center;gap:8px;background:#f1f3f4;padding:8px;border-radius:8px}
+.select select{border:0;background:transparent;padding:6px;font-weight:600;color:var(--muted);outline:none}
+.detect{color:var(--muted);font-size:13px}
+.textarea{width:100%;min-height:180px;border-radius:10px;padding:12px;border:1px solid rgba(0,0,0,0.06);resize:vertical;font-size:15px;background:transparent}
+.controls{display:flex;gap:8px;align-items:center;margin-top:8px}
+.btn{border:0;padding:8px 12px;border-radius:8px;cursor:pointer;background:transparent;font-weight:600;color:var(--accent)}
+.btn.primary{background:var(--accent);color:white}
+.swap-btn{width:56px;height:56px;border-radius:999px;display:flex;align-items:center;justify-content:center;border:1px solid rgba(0,0,0,0.06);background:var(--card);cursor:pointer}
+.middle{display:flex;flex-direction:column;align-items:center;gap:12px}
+.output{min-height:180px;padding:12px;border-radius:10px;border:1px solid rgba(0,0,0,0.04);background:linear-gradient(180deg, rgba(255,255,255,0.6), var(--card));font-size:15px}
+.small{color:var(--muted);font-size:13px}
+.row{display:flex;align-items:center;gap:8px}
+.phonetic{color:var(--muted);font-style:italic;margin-top:8px}
+.actions{display:flex;gap:8px;margin-top:8px}
+.icon{width:36px;height:36px;display:inline-flex;align-items:center;justify-content:center;border-radius:8px;background:#f1f3f4;cursor:pointer}
+.voice-btn{display:flex;gap:6px;align-items:center;padding:8px;border-radius:8px;background:#eef3ff;color:var(--accent);font-weight:600}
+.copy{background:#f1f3f4;padding:6px;border-radius:6px}
+.footer{max-width:1100px;margin:16px auto;color:var(--muted);font-size:13px;padding:0 20px}
+@media (max-width:880px){
+  .panel-wrap{grid-template-columns:1fr;}
+  .middle{flex-direction:row}
+  .swap-btn{transform:rotate(90deg)}
+}
+</style>
+</head>
+<body>
+  <div class="header">
+    <div class="brand">
+      <div class="logo"><img src="logo.png" alt="logo" style="width:28px;height:28px;object-fit:contain"></div>
+      <h1>Zoeken Translate</h1>
+    </div>
+  </div>
+
+  <div class="app">
+    <div class="panel-wrap">
+      <!-- Source panel -->
+      <div class="panel">
+        <div class="lang-bar">
+          <div class="select">
+            <select id="fromLang"></select>
+            <div class="detect small" id="detected">Detect language</div>
+          </div>
+          <div style="flex:1"></div>
+          <div class="row">
+            <div id="micBtn" class="icon" title="Speak to type">🔊</div>
+          </div>
+        </div>
+        <textarea id="sourceText" class="textarea" placeholder="Type text or paste here..."></textarea>
+        <div class="controls">
+          <button id="clearBtn" class="btn">Clear</button>
+          <button id="swapBtn" class="btn">Swap</button>
+        </div>
+      </div>
+
+      <!-- middle controls -->
+      <div class="middle">
+        <div class="swap-btn" id="swapBtnBig" title="Swap languages">⇅</div>
+        <div style="display:flex;flex-direction:column;gap:8px;align-items:center">
+          <button id="translateBtn" class="btn primary">Translate</button>
+          <div class="small">Powered by OpenAI</div>
+        </div>
+      </div>
+
+      <!-- Target panel -->
+      <div class="panel">
+        <div class="lang-bar">
+          <div class="select">
+            <select id="toLang"></select>
+          </div>
+          <div style="flex:1"></div>
+          <div class="row">
+            <div id="playBtn" class="icon" title="Play pronunciation">🔈</div>
+            <div id="copyBtn" class="icon" title="Copy translation">📋</div>
+          </div>
+        </div>
+
+        <div id="result" class="output">Translation will appear here</div>
+        <div id="phonetic" class="phonetic">Phonetic: —</div>
+
+        <div class="actions">
+
+        </div>
+      </div>
+    </div>
+
+    <div class="footer">Tip: replace <code>OPENAI_API_KEY</code> string in the script with your OpenAI key. The app asks the model for both the translation and an IPA phonetic transcription (when possible).</div>
+  </div>
+
+<script>
+// ---------------- CONFIG ----------------
+const OPENAI_KEY = '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'; // <-- replace with your OpenAI key
+const MODEL = 'gpt-4o-mini';
+
+// Languages list (codes + readable names) — 100+ common ones
+const languages = {
+  "auto":"Detect language",
+  "af":"Afrikaans","sq":"Albanian","am":"Amharic","ar":"Arabic","hy":"Armenian",
+  "az":"Azerbaijani","eu":"Basque","be":"Belarusian","bn":"Bengali","bs":"Bosnian",
+  "bg":"Bulgarian","ca":"Catalan","ceb":"Cebuano","ny":"Chichewa","zh":"Chinese (Simplified)",
+  "zh-TW":"Chinese (Traditional)","co":"Corsican","hr":"Croatian","cs":"Czech","da":"Danish",
+  "nl":"Dutch","en":"English","eo":"Esperanto","et":"Estonian","tl":"Filipino","fi":"Finnish",
+  "fr":"French","fy":"Frisian","gl":"Galician","ka":"Georgian","de":"German","el":"Greek",
+  "gu":"Gujarati","ht":"Haitian Creole","ha":"Hausa","haw":"Hawaiian","he":"Hebrew","hi":"Hindi",
+  "hmn":"Hmong","hu":"Hungarian","is":"Icelandic","ig":"Igbo","id":"Indonesian","ga":"Irish",
+  "it":"Italian","ja":"Japanese","jw":"Javanese","kn":"Kannada","kk":"Kazakh","km":"Khmer",
+  "ko":"Korean","ku":"Kurdish","ky":"Kyrgyz","lo":"Lao","la":"Latin","lv":"Latvian",
+  "lt":"Lithuanian","lb":"Luxembourgish","mk":"Macedonian","mg":"Malagasy","ms":"Malay","ml":"Malayalam",
+  "mt":"Maltese","mi":"Maori","mr":"Marathi","mn":"Mongolian","my":"Myanmar (Burmese)","ne":"Nepali",
+  "no":"Norwegian","or":"Odia","ps":"Pashto","fa":"Persian","pl":"Polish","pt":"Portuguese",
+  "pa":"Punjabi","ro":"Romanian","ru":"Russian","sm":"Samoan","gd":"Scots Gaelic","sr":"Serbian",
+  "st":"Sesotho","sn":"Shona","sd":"Sindhi","si":"Sinhala","sk":"Slovak","sl":"Slovenian",
+  "so":"Somali","es":"Spanish","su":"Sundanese","sw":"Swahili","sv":"Swedish","tg":"Tajik",
+  "ta":"Tamil","te":"Telugu","th":"Thai","tr":"Turkish","uk":"Ukrainian","ur":"Urdu","ug":"Uyghur",
+  "uz":"Uzbek","vi":"Vietnamese","cy":"Welsh","xh":"Xhosa","yi":"Yiddish","yo":"Yoruba","zu":"Zulu"
+};
+
+// populate selects
+const fromLang = document.getElementById('fromLang');
+const toLang = document.getElementById('toLang');
+for (const code in languages){
+  const o1 = document.createElement('option'); o1.value = code; o1.textContent = languages[code];
+  const o2 = o1.cloneNode(true);
+  fromLang.appendChild(o1); toLang.appendChild(o2);
+}
+fromLang.value = 'auto';
+toLang.value = 'en';
+
+// UI elements
+const sourceText = document.getElementById('sourceText');
+const translateBtn = document.getElementById('translateBtn');
+const resultEl = document.getElementById('result');
+const phoneticEl = document.getElementById('phonetic');
+const playBtn = document.getElementById('playBtn');
+const copyBtn = document.getElementById('copyBtn');
+const micBtn = document.getElementById('micBtn');
+const clearBtn = document.getElementById('clearBtn');
+const swapBtn = document.getElementById('swapBtn');
+const swapBtnBig = document.getElementById('swapBtnBig');
+const voiceSpeak = document.getElementById('voiceSpeak');
+
+let lastTranslation = '';
+let lastPhonetic = '';
+let detectedLanguage = null;
+
+// ---------------- Speech-to-text (Web Speech API) ----------------
+let recognition = null;
+if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window){
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  recognition = new SpeechRecognition();
+  recognition.lang = 'en-US';
+  recognition.interimResults = false;
+  recognition.onresult = (e) => {
+    const t = Array.from(e.results).map(r => r[0].transcript).join('');
+    sourceText.value = sourceText.value ? sourceText.value + ' ' + t : t;
+  };
+}
+micBtn.addEventListener('click', () => {
+  if (!recognition) return alert('Speech recognition not supported in this browser');
+  try{ recognition.start(); } catch(e){}
+});
+
+// ---------------- Helpers ----------------
+function setLoading(loading){
+  translateBtn.disabled = loading;
+  translateBtn.textContent = loading ? 'Translating...' : 'Translate';
+}
+
+function speakText(text, lang) {
+  if (!('speechSynthesis' in window)) return alert('TTS not supported');
+
+  const synth = window.speechSynthesis;
+  const voices = synth.getVoices();
+  const utterance = new SpeechSynthesisUtterance(text);
+
+  // Set language — fallback to English if not available
+  utterance.lang = lang || (typeof toLang !== 'undefined' && toLang.value !== 'auto' 
+    ? mapLangToBcp47(toLang.value)
+    : 'en-US');
+
+  // Try to find a female voice
+  let femaleVoice = voices.find(v =>
+    v.lang.startsWith(utterance.lang.split('-')[0]) &&
+    /female|woman|zira|susan|samantha|victoria|karen|google us english|google uk english female/i.test(v.name)
+  );
+
+  // Fallback if no female voice found
+  utterance.voice = femaleVoice || voices.find(v => v.lang === utterance.lang) || voices[0];
+
+  // Optionally make it sound smoother
+  utterance.pitch = 1.1;
+  utterance.rate = 1;
+
+  synth.cancel(); // stop any previous speech
+  synth.speak(utterance);
+}
+
+
+function mapLangToBcp47(code){
+  // best-effort mapping; for many codes it's the same
+  if(code === 'zh') return 'zh-CN';
+  if(code === 'zh-TW') return 'zh-TW';
+  if(code === 'en') return 'en-US';
+  if(code === 'pt') return 'pt-PT';
+  if(code === 'fr') return 'fr-FR';
+  if(code === 'es') return 'es-ES';
+  return code;
+}
+
+async function copyToClipboard(text){
+  try { await navigator.clipboard.writeText(text); alert('Copied'); } catch(e){ alert('Copy failed'); }
+}
+
+// ---------------- OpenAI call: request translation + phonetic ----------------
+async function requestTranslation(text, from, to){
+  setLoading(true);
+  resultEl.textContent = 'Translating...';
+  phoneticEl.textContent = 'Phonetic: —';
+
+  // Build prompt: ask model to return strict JSON with translation and IPA phonetic
+  const system = `You are Zoeken Translator: a concise, accurate translation assistant. When asked to translate, respond ONLY with a single valid JSON object with keys: translation (string), phonetic (string or empty), detected_language (ISO code or empty). Do NOT include any extra commentary.`;
+  const userPrompt = `Translate the following text${from && from !== 'auto' ? ` from ${from}` : ''} to ${to}. Provide the translated text and an IPA phonetic transcription of the translation (use empty string if not applicable). Text: """${text}"""`;
+
+  try{
+    const resp = await fetch('https://api.openai.com/v1/chat/completions',{
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'Authorization':`Bearer ${OPENAI_KEY}`
+      },
+      body: JSON.stringify({
+        model: MODEL,
+        messages:[
+          {role:'system', content: system},
+          {role:'user', content: userPrompt}
+        ],
+        max_tokens: 800,
+        temperature: 0.1
+      })
+    });
+
+    const data = await resp.json();
+    const textResp = data.choices?.[0]?.message?.content || '';
+
+    // Try to extract JSON from response
+    let parsed = null;
+    try{
+      // If model wrapped JSON in code block, strip it
+      const cleaned = textResp.replace(/```json|```/g,'').trim();
+      parsed = JSON.parse(cleaned);
+    } catch(e){
+      // fallback: attempt to find first {...}
+      const firstBrace = textResp.indexOf('{');
+      const lastBrace = textResp.lastIndexOf('}');
+      if(firstBrace !== -1 && lastBrace !== -1){
+        try{ parsed = JSON.parse(textResp.slice(firstBrace, lastBrace+1)); } catch(e){}
+      }
+    }
+
+    if(!parsed){
+      // if parsing failed, show raw
+      resultEl.textContent = textResp;
+      phoneticEl.textContent = 'Phonetic: —';
+      setLoading(false);
+      return {translation: textResp, phonetic: ''};
+    }
+
+    lastTranslation = parsed.translation || '';
+    lastPhonetic = parsed.phonetic || '';
+    detectedLanguage = parsed.detected_language || '';
+
+    resultEl.textContent = lastTranslation || '—';
+    phoneticEl.textContent = lastPhonetic ? `Phonetic: ${lastPhonetic}` : 'Phonetic: —';
+
+    // update detected if present
+    if(detectedLanguage){
+      document.getElementById('detected').textContent = 'Detected: ' + detectedLanguage;
+    }
+
+    setLoading(false);
+    return parsed;
+  } catch(err){
+    setLoading(false);
+    resultEl.textContent = 'Error: ' + (err.message || err);
+    phoneticEl.textContent = 'Phonetic: —';
+    return null;
+  }
+}
+
+// ---------------- Events ----------------
+translateBtn.addEventListener('click', async ()=>{
+  const text = sourceText.value.trim();
+  if(!text) return alert('Please enter text');
+  await requestTranslation(text, fromLang.value, toLang.value);
+});
+
+playBtn.addEventListener('click', ()=>{
+  if(!lastTranslation) return alert('No translation to play');
+  speakText(lastTranslation, mapLangToBcp47(toLang.value));
+});
+
+voiceSpeak.addEventListener('click', ()=>{
+  if(!lastTranslation) return alert('No translation to play');
+  speakText(lastTranslation, mapLangToBcp47(toLang.value));
+});
+
+copyBtn.addEventListener('click', ()=>{ if(lastTranslation) copyToClipboard(lastTranslation); });
+clearBtn.addEventListener('click', ()=>{ sourceText.value=''; resultEl.textContent='Translation will appear here'; phoneticEl.textContent='Phonetic: —'; document.getElementById('detected').textContent='Detect language'; lastTranslation=''; lastPhonetic=''; });
+
+swapBtn.addEventListener('click', ()=>{ const a = fromLang.value; fromLang.value = toLang.value === 'auto' ? 'auto' : toLang.value; toLang.value = a === 'auto' ? 'en' : a; const tmp = sourceText.value; sourceText.value = lastTranslation || ''; resultEl.textContent = tmp || 'Translation will appear here'; });
+swapBtnBig.addEventListener('click', ()=> swapBtn.click());
+
+// optional: download audio via TTS using Web Speech -> capture not natively supported; we provide placeholder
+const downloadAudioBtn = document.getElementById('downloadAudio');
+downloadAudioBtn.addEventListener('click', ()=>{
+  alert('Downloading TTS to WAV is not supported directly in-browser without a server. Use the Play button or integrate a TTS API to generate downloadable audio.');
+});
+
+// ---------------- small niceties: enter to translate ----------------
+sourceText.addEventListener('keydown', (e)=>{
+  if((e.ctrlKey || e.metaKey) && e.key === 'Enter'){
+    translateBtn.click();
+  }
+});
+
+// ---------------- auto-detect improvement: when source set to auto, ask model to detect language during translation
+
+// That's it.
+</script>
+</body>
+</html>

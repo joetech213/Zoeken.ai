@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Zoeken AI</title>
+<link rel="icon" href="logo.png">
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+
+<a href="zoeken.html" class="side-icon">
+  <span class="material-icons">arrow_back</span>
+</a>
+
+<style>
+
+
+  .side-icon {
+    position: fixed;
+    left: 10px;      /* distance from left side */
+    top: 10px;       /* distance from top */
+    
+    background: #1f1f1f;
+    color: white;
+    text-decoration: none;
+    padding: 8px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 36px;
+    height: 36px;
+    cursor: pointer;
+    transition: 0.2s ease;
+  }
+
+  .side-icon:hover {
+    background: #333;
+  }
+
+  .side-icon .material-icons {
+    font-size: 20px;
+  }
+
+
+
+
+
+:root {
+  --bg: #f6f9ff;
+  --accent: #1a73e8;
+  --user-msg: #e3f2fd;
+  --ai-msg: #ffffff;
+  --radius: 12px;
+  --shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  color: #202124;
+}
+body {
+  margin: 0;
+  height: 100vh;
+  display: flex;
+  flex-direction: row;
+  background: var(--bg);
+}
+
+/* Sidebar */
+.sidebar {
+  width: 240px;
+  background: #fff;
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  padding-top: 10px;
+}
+
+.sidebar h2 {
+  text-align: center;
+  color: var(--accent);
+  margin-bottom: 10px;
+}
+
+.new-chat-btn {
+  background: var(--accent);
+  color: white;
+  border: none;
+  padding: 10px;
+  margin: 0 10px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 500;
+}
+.new-chat-btn:hover { background: #0f5fd9; }
+
+.chat-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 10px;
+}
+.chat-item {
+  padding: 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  margin-bottom: 5px;
+  background: #f1f3f4;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.chat-item:hover { background: rgba(26,115,232,0.1); }
+.chat-item.active {
+  background: var(--accent);
+  color: white;
+}
+
+/* Main chat area */
+.main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  border-left: 1px solid rgba(0,0,0,0.08);
+  position: relative;
+}
+
+/* Header */
+.header {
+  background: var(--accent);
+  color: white;
+  padding: 16px 20px;
+  font-size: 20px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.header img {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+}
+.mic-btn, .speak-btn {
+  background: #1a73e8;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 42px;
+  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+.mic-btn:hover, .speak-btn:hover { background: #0f5fd9; }
+.mic-btn.active {
+  background: red;
+  box-shadow: 0 0 10px red;
+}
+
+/* Chat box */
+.chat-box {
+  flex: 1;
+  padding: 20px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  background: #f8faff;
+  gap: 8px;
+}
+
+/* Message bubbles */
+.message {
+  max-width: 80%;
+  padding: 12px 16px;
+  border-radius: 20px;
+  word-wrap: break-word;
+  line-height: 1.5;
+  font-size: 15px;
+  animation: fadeIn 0.3s ease;
+  display: inline-block;
+  position: relative;
+  margin: 4px 0;
+  transition: all 0.2s ease;
+}
+
+.user {
+  background: var(--user-msg);
+  align-self: flex-end;
+  border-top-right-radius: 4px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  margin-left: 40px;
+  text-align: left;
+  animation: slideInRight 0.3s ease;
+}
+.ai {
+  background: var(--ai-msg);
+  align-self: flex-start;
+  border-top-left-radius: 4px;
+  box-shadow: 0 2px 8px rgba(26,115,232,0.1);
+  margin-right: 40px;
+  text-align: left;
+  animation: slideInLeft 0.3s ease;
+}
+
+/* Chat tails */
+.user::after {
+  content: "";
+  position: absolute;
+  right: -8px;
+  bottom: 0;
+  width: 0;
+  height: 0;
+  border-left: 10px solid var(--user-msg);
+  border-top: 10px solid transparent;
+}
+.ai::before {
+  content: "";
+  position: absolute;
+  left: -8px;
+  bottom: 0;
+  width: 0;
+  height: 0;
+  border-right: 10px solid var(--ai-msg);
+  border-top: 10px solid transparent;
+}
+
+/* Code blocks */
+pre code {
+  display: block;
+  background: #1e1e1e;
+  color: #e3e3e3;
+  padding: 12px;
+  border-radius: 8px;
+  font-size: 14px;
+  overflow-x: auto;
+}
+#themeToggle {
+  background: none;
+  border: none;
+  font-size: 20px;
+  color: white;
+  cursor: pointer;
+  transition: transform 0.3s;
+}
+#themeToggle:hover { transform: scale(1.2); }
+/* 🌙 DARK MODE INVERSION */
+body.dark {
+  --bg: #000;
+  --ai-msg: #000;
+  --user-msg: #111;
+  color: #fff;
+  background: #000;
+}
+
+body.dark .sidebar {
+  background: #000;
+  color: #fff;
+  box-shadow: 0 0 10px rgba(255,255,255,0.1);
+}
+
+body.dark .header {
+  background: var(--accent);
+  color: white;
+}
+
+body.dark .chat-box {
+  background: #000;
+}
+
+body.dark .message.ai {
+  background: #111;
+  color: #fff;
+  box-shadow: 0 0 6px rgba(255,255,255,0.1);
+}
+
+body.dark .message.user {
+  background: #222;
+  color: #fff;
+}
+
+body.dark input[type="text"],
+body.dark select {
+  background: #111;
+  color: #fff;
+  border: 1px solid #444;
+}
+
+body.dark button {
+  color: white;
+}
+
+body.dark .chat-item {
+  background: #111;
+  color: #fff;
+}
+body.dark .chat-item.active {
+  background: var(--accent);
+  color: white;
+}
+
+body.dark .footer {
+  background: #000;
+  color: #aaa;
+  border-top: 1px solid #333;
+}
+
+/* Make scrollbars white for dark mode */
+body.dark ::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.3);
+}
+body.dark ::-webkit-scrollbar-thumb:hover {
+  background: rgba(255,255,255,0.5);
+}
+
+
+/* Input area */
+.input-area {
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+  background: #f8faff;
+  border-top: 1px solid rgba(0,0,0,0.08);
+  gap: 10px;
+}
+input[type="text"] {
+  flex: 1;
+  border: 1px solid rgba(0,0,0,0.1);
+  border-radius: 999px;
+  padding: 10px 16px;
+  outline: none;
+  font-size: 15px;
+}
+button {
+  border: none;
+  background: var(--accent);
+  color: white;
+  padding: 10px 16px;
+  border-radius: 999px;
+  cursor: pointer;
+  font-weight: 500;
+}
+button:hover { background: #0f5fd9; }
+
+select {
+  border: 1px solid rgba(0,0,0,0.1);
+  border-radius: 8px;
+  padding: 8px;
+  font-size: 14px;
+}
+
+.typing {
+  color: var(--accent);
+  font-style: italic;
+  font-size: 14px;
+  margin-left: 8px;
+  animation: blink 1s infinite;
+}
+
+/* Disclaimer */
+.footer {
+  text-align: center;
+  font-size: 12px;
+  color: #888;
+  padding: 10px 0;
+  border-top: 1px solid rgba(0,0,0,0.05);
+  background: #fff;
+}
+
+/* Animations */
+@keyframes blink { 50% { opacity: 0.3; } }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes slideInLeft { from { opacity: 0; transform: translateX(-15px); } to { opacity: 1; transform: translateX(0); } }
+@keyframes slideInRight { from { opacity: 0; transform: translateX(15px); } to { opacity: 1; transform: translateX(0); } }
+
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.2); border-radius: 10px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.3); }
+</style>
+</head>
+<body>
+  
+
+<div class="sidebar">
+  <h2>Zoeken AI</h2>
+  <button class="new-chat-btn" id="newChatBtn">+ New Chat</button>
+  <div class="chat-list" id="chatList"></div>
+</div>
+
+<div class="main">
+  <div class="header">
+    <div style="display:flex;align-items:center;gap:10px;">
+      <img src="logo.png" alt="Zoeken Logo">
+      Zoeken AI Assistant
+    </div>
+    <button id="themeToggle" title="Toggle Dark/Light Mode">🌙</button>
+
+    <select id="modeSelect">
+      <option value="auto">Auto Mode 🤖</option>
+      <option value="summary">Summary ✨</option>
+      <option value="detailed">Detailed 📘</option>
+      <option value="friend">Friend 😎</option>
+      <option value="teacher">Teacher 🧠</option>
+      <option value="ideas">Ideas 💡</option>
+      <option value="writer">Writer 📝</option>
+    </select>
+  </div>
+
+  <div class="chat-box" id="chatBox">
+    <div class="message ai">
+      👋 Hi there! I'm <b>Zoeken AI</b>. Choose a mode and ask me anything — I’ll respond in clean sections, headings, and bullet points.
+    </div>
+  </div>
+
+  <div class="input-area">
+    <input type="text" id="userInput" placeholder="Type your message..." autocomplete="off" />
+    <button id="sendBtn">Send</button>
+    <button class="mic-btn" id="micBtn" title="Speak to Zoeken">🎙️</button>
+
+  </div>
+
+  <!-- Disclaimer stays fixed at bottom -->
+  <div class="footer">
+    Zoeken AI can make mistakes
+  </div>
+</div>
+
+
+<!-- Markdown Parser -->
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+<script>
+const OPENAI_KEY = "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"; 
+const chatBox = document.getElementById("chatBox");
+const userInput = document.getElementById("userInput");
+const sendBtn = document.getElementById("sendBtn");
+const chatList = document.getElementById("chatList");
+const newChatBtn = document.getElementById("newChatBtn");
+const modeSelect = document.getElementById("modeSelect");
+
+let chats = JSON.parse(localStorage.getItem("chats") || "[]");
+let activeChatId = null;
+
+function saveChats() {
+  localStorage.setItem("chats", JSON.stringify(chats));
+}
+
+function appendMessage(role, text) {
+  const msg = document.createElement("div");
+  msg.className = `message ${role}`;
+  msg.innerHTML = marked.parse(text);
+  chatBox.appendChild(msg);
+  chatBox.scrollTop = chatBox.scrollHeight;
+
+  if (activeChatId !== null) {
+    const chat = chats.find(c => c.id === activeChatId);
+    chat.messages.push({ role, text });
+    saveChats();
+    renderChatList();
+  }
+}
+
+function showTyping() {
+  const typing = document.createElement("div");
+  typing.className = "message ai";
+  typing.id = "typing";
+  typing.innerHTML = "<span class='typing'>Zoeken AI is thinking...</span>";
+  chatBox.appendChild(typing);
+  chatBox.scrollTop = chatBox.scrollHeight;
+}
+
+function removeTyping() {
+  const t = document.getElementById("typing");
+  if (t) t.remove();
+}
+
+function buildSystemPrompt(mode) {
+  let base = `
+You are Zoeken AI — an intelligent, organized assistant with an IQ of 300, created by MCK Industries.
+Always respond in Markdown format with clarity and structure.
+Avoid unsafe or offensive content.
+Be smart, polite, and concise.
+If it is a command, take the user's instruction literally and safely execute it.
+`;
+
+  const modes = {
+    summary: "Give short structured summaries (3–5 lines).",
+    detailed: "Explain deeply with numbered sections.",
+    friend: "Talk like a chill best friend — relaxed, simple, but organized.",
+    teacher: "Teach clearly using headings, examples, and analogies.",
+    ideas: "Generate creative ideas using bullet lists.",
+    writer: "Write creative pieces — stories, poems, essays.",
+    auto: "Choose the best response style automatically."
+  };
+
+  base += "\n" + (modes[mode] || "");
+
+  // 🧠 Add user memory context
+  if (Object.keys(userProfile).length > 0) {
+    base += `\nHere are details about the user you remember:\n${JSON.stringify(userProfile, null, 2)}\n`;
+    base += `Always use this memory to personalize responses.`;
+  }
+
+  return base;
+}
+async function processMemoryCommands(userMessage, aiResponse) {
+  // Detect if user asked Zoeken to "remember" something
+  const rememberMatch = userMessage.match(/remember that (.+?) is (.+)/i);
+  if (rememberMatch) {
+    const key = rememberMatch[1].trim().toLowerCase();
+    const value = rememberMatch[2].trim();
+    remember(key, value);
+    appendMessage("ai", `✅ Got it! I'll remember that your ${key} is ${value}.`);
+    return true;
+  }
+
+  // If user asks to recall something
+  const recallMatch = userMessage.match(/what(?:'s| is) my (.+)/i);
+  if (recallMatch) {
+    const key = recallMatch[1].trim().toLowerCase();
+    const value = recall(key);
+    appendMessage("ai", value ? `🧠 You told me your ${key} is ${value}.` : `❓ I don’t remember your ${key} yet.`);
+    return true;
+  }
+
+  // Forget command
+  if (/forget (.+)/i.test(userMessage)) {
+    const key = userMessage.match(/forget (.+)/i)[1].trim().toLowerCase();
+    delete userProfile[key];
+    localStorage.setItem("userProfile", JSON.stringify(userProfile));
+    appendMessage("ai", `🗑️ I’ve forgotten your ${key}.`);
+    return true;
+  }
+
+  return false;
+}
+
+
+async function fetchChatGPTAnswer(query) {
+  const mode = modeSelect.value;
+  try {
+    const res = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${OPENAI_KEY}`,
+      },
+      body: JSON.stringify({
+        model: "gpt-4o-mini",
+        messages: [
+          { role: "system", content: buildSystemPrompt(mode) },
+          { role: "user", content: query }
+        ],
+        temperature: 0.5,
+      }),
+    });
+    const data = await res.json();
+    return data.choices?.[0]?.message?.content || "No response.";
+  } catch (err) {
+    console.error(err);
+    return "⚠️ Error connecting to OpenAI.";
+  }
+}
+
+// 🧠 Auto-name chat based on conversation content
+async function autoNameChat(chatId) {
+  const chat = chats.find(c => c.id === chatId);
+  if (!chat) return;
+  const conversationText = chat.messages.map(m => `${m.role}: ${m.text}`).join("\n");
+
+  try {
+    const res = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${OPENAI_KEY}`,
+      },
+      body: JSON.stringify({
+        model: "gpt-4o-mini",
+        messages: [
+          { role: "system", content: "Generate a 2–5 word descriptive chat title summarizing this conversation. No punctuation or quotes." },
+          { role: "user", content: conversationText }
+        ],
+        max_tokens: 12,
+        temperature: 0.4,
+      }),
+    });
+    const data = await res.json();
+    const title = data.choices?.[0]?.message?.content?.trim() || "Untitled Chat";
+    if (chat.title !== title) {
+      chat.title = title;
+      saveChats();
+      renderChatList();
+    }
+  } catch (err) {
+    console.error("Auto-name failed:", err);
+  }
+}
+
+async function sendMessage() {
+  const text = userInput.value.trim();
+  if (!text) return;
+  appendMessage("user", text);
+  userInput.value = "";
+  
+  // 🧠 Check if message is a memory command before calling API
+  const handled = await processMemoryCommands(text);
+  if (handled) return;
+
+  showTyping();
+  const aiResponse = await fetchChatGPTAnswer(text);
+  removeTyping();
+  appendMessage("ai", aiResponse);
+  speakText(aiResponse);
+
+  // Auto-name chat after some exchanges
+  const chat = chats.find(c => c.id === activeChatId);
+  if (chat && chat.messages.length >= 2) autoNameChat(chat.id);
+}
+
+
+// 📋 Chat List Rendering + Right-Click Delete
+function renderChatList() {
+  chatList.innerHTML = "";
+  chats.forEach(chat => {
+    const div = document.createElement("div");
+    div.className = "chat-item" + (chat.id === activeChatId ? " active" : "");
+    div.textContent = chat.title || "Untitled Chat";
+
+    // Left-click: load chat
+    div.addEventListener("click", () => loadChat(chat.id));
+
+    // Right-click: delete menu
+    div.addEventListener("contextmenu", (e) => {
+      e.preventDefault();
+      if (confirm(`Delete chat: "${chat.title}"?`)) {
+        chats = chats.filter(c => c.id !== chat.id);
+        if (activeChatId === chat.id) {
+          activeChatId = null;
+          chatBox.innerHTML = "";
+        }
+        saveChats();
+        renderChatList();
+      }
+    });
+
+    chatList.appendChild(div);
+  });
+}
+
+function loadChat(id) {
+  activeChatId = id;
+  const chat = chats.find(c => c.id === id);
+  chatBox.innerHTML = "";
+  chat.messages.forEach(m => appendMessage(m.role, m.text));
+  renderChatList();
+}
+
+newChatBtn.addEventListener("click", () => {
+  const id = Date.now();
+  const newChat = { id, title: "Untitled Chat", messages: [] };
+  chats.unshift(newChat);
+  activeChatId = id;
+  chatBox.innerHTML = "";
+  saveChats();
+  renderChatList();
+});
+
+renderChatList();
+sendBtn.addEventListener("click", sendMessage);
+userInput.addEventListener("keypress", e => { if (e.key === "Enter") sendMessage(); });
+
+// 🎙️ Voice Input
+if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const recognition = new SpeechRecognition();
+  recognition.lang = "en-US";
+  recognition.continuous = false;
+  recognition.interimResults = false;
+
+  micBtn.addEventListener("click", () => {
+    if (micBtn.classList.contains("active")) {
+      recognition.stop();
+      micBtn.classList.remove("active");
+    } else {
+      recognition.start();
+      micBtn.classList.add("active");
+    }
+  });
+
+  recognition.onresult = (event) => {
+    const transcript = event.results[0][0].transcript;
+    userInput.value = transcript;
+    micBtn.classList.remove("active");
+    sendMessage();
+  };
+  recognition.onerror = () => micBtn.classList.remove("active");
+} else {
+  micBtn.style.display = "none";
+}
+const themeToggle = document.getElementById("themeToggle");
+
+// Apply saved mode
+if (localStorage.getItem("darkMode") === "true") {
+  document.body.classList.add("dark");
+  themeToggle.textContent = "☀️";
+}
+
+themeToggle.addEventListener("click", () => {
+  document.body.classList.toggle("dark");
+  const darkEnabled = document.body.classList.contains("dark");
+  localStorage.setItem("darkMode", darkEnabled);
+  themeToggle.textContent = darkEnabled ? "☀️" : "🌙";
+});
+
+
+let userProfile = JSON.parse(localStorage.getItem("userProfile") || "{}");
+
+function remember(key, value) {
+  userProfile[key] = value;
+  localStorage.setItem("userProfile", JSON.stringify(userProfile));
+}
+
+function recall(key) {
+  return userProfile[key] || null;
+}
+
+</script>
+
+
+</body>
+</html>

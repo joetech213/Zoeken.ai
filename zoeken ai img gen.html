@@ -1,0 +1,373 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Zoeken AI — Image Generator (Demo)</title>
+  <style>
+    :root{
+      --bg: #0f1724;
+      --card: #0b1220;
+      --accent: #7c3aed;
+      --muted: #9aa4b2;
+      --glass: rgba(255,255,255,0.03);
+      --radius: 14px;
+    }
+    *{box-sizing:border-box;font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial;}
+    body{margin:0;background:linear-gradient(180deg,#071025 0%, #071827 100%);color:#e6eef8;min-height:100vh;padding:32px;display:flex;align-items:center;justify-content:center}
+    .app{width:980px;max-width:96vw;background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));border-radius:18px;padding:22px;box-shadow:0 10px 40px rgba(2,6,23,0.8);backdrop-filter: blur(6px)}
+    header{display:flex;gap:16px;align-items:center;margin-bottom:12px}
+    .logo{width:64px;height:64px;border-radius:12px;background:linear-gradient(135deg,var(--accent),#2dd4bf);display:flex;align-items:center;justify-content:center;font-weight:700;color:#051126}
+    h1{font-size:20px;margin:0}
+    p.lead{margin:0;color:var(--muted);font-size:13px}
+
+    .controls{display:grid;grid-template-columns:1fr 280px;gap:14px;margin-top:16px}
+    .card{background:var(--card);padding:14px;border-radius:12px;box-shadow:inset 0 1px 0 rgba(255,255,255,0.02)}
+    label{display:block;font-size:12px;color:var(--muted);margin-bottom:6px}
+    input[type="text"], textarea, select {
+      width:100%;padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:inherit;font-size:14px;
+    }
+    textarea{min-height:96px;resize:vertical}
+    .row{display:flex;gap:8px;align-items:center}
+    button.primary{
+      background:linear-gradient(90deg,var(--accent),#06b6d4);
+      border:none;padding:10px 14px;border-radius:10px;color:#041322;font-weight:700;cursor:pointer;
+      box-shadow:0 8px 20px rgba(124,58,237,0.15);
+    }
+    button.ghost{background:transparent;border:1px solid rgba(255,255,255,0.06);padding:8px 10px;border-radius:10px;color:var(--muted);cursor:pointer}
+    small.warn{display:block;color:#ffd6a5;margin-top:8px;font-size:12px}
+    .api-helpers{display:flex;flex-direction:column;gap:8px}
+    .images-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-top:16px}
+    .img-card{background:var(--glass);border-radius:12px;padding:8px;display:flex;flex-direction:column;gap:8px;align-items:center}
+    .img-card img{max-width:100%;border-radius:10px;display:block}
+    .img-actions{display:flex;gap:6px;width:100%;justify-content:space-between}
+    .small{font-size:12px;color:var(--muted)}
+    footer.note{margin-top:12px;color:var(--muted);font-size:12px}
+    .danger{color:#ffb4b4}
+    .flex-between{display:flex;justify-content:space-between;align-items:center}
+  </style>
+</head>
+<body>
+  <div class="app" role="main" aria-labelledby="title">
+    <header>
+      <div class="logo">ZK</div>
+      <div>
+        <h1 id="title">Zoeken AI — Image Generator (Demo)</h1>
+        <p class="lead">Compose prompts, pick a role (style), and generate images with OpenAI. Demo — don't expose your real key publicly.</p>
+      </div>
+    </header>
+
+    <div class="controls">
+      <div class="card">
+        <label for="prompt">Prompt</label>
+        <textarea id="prompt" placeholder="Describe the image you want — e.g. 'A neon-lit cyberpunk street, rainy, cinematic, wide-angle'"></textarea>
+
+        <div style="display:flex;gap:10px;margin-top:10px">
+          <div style="flex:1">
+            <label for="role">Role / Style</label>
+            <select id="role">
+              <option value="">— choose a role —</option>
+              <option value="digital concept artist">Digital Concept Artist</option>
+              <option value="studio photographer">Studio Photographer</option>
+              <option value="surreal painter">Surreal Painter</option>
+              <option value="3d render, octane">3D Render (Octane)</option>
+              <option value="watercolor illustration">Watercolor Illustration</option>
+              <option value="comic book style">Comic Book Style</option>
+            </select>
+          </div>
+          <div style="width:120px">
+            <label for="size">Size</label>
+            <select id="size">
+              <option value="512x512">512×512</option>
+              <option value="768x768">768×768</option>
+              <option value="1024x1024" selected>1024×1024</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="margin-top:12px;display:flex;gap:8px;align-items:center">
+          <button id="generateBtn" class="primary">Generate</button>
+          <button id="clearBtn" class="ghost">Clear</button>
+          <div style="margin-left:auto" class="small">Images: <span id="imgCount">0</span></div>
+        </div>
+
+        <small class="warn">Security: this demo stores the API key only in your browser sessionStorage and calls OpenAI from the client. For production, use a server proxy to keep the key secret.</small>
+      </div>
+
+      <aside class="card api-helpers" aria-label="API & key">
+        <div>
+          <label for="apikey">OpenAI API Key</label>
+          <input id="apikey" type="text" placeholder="sk-..." />
+          <small class="small">Tip: paste a test key here. This demo will store it to sessionStorage for this tab only.</small>
+        </div>
+
+        <div>
+          <label for="n">Images to generate (n)</label>
+          <select id="n">
+            <option value="1" selected>1</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+            <option value="4">4</option>
+          </select>
+        </div>
+
+        <div>
+          <label for="transparent">Transparent background?</label>
+          <select id="transparent">
+            <option value="false" selected>No</option>
+            <option value="true">Yes (PNG)</option>
+          </select>
+        </div>
+
+        <div>
+          <label for="seed">Optional seed (leave blank for random)</label>
+          <input id="seed" type="text" placeholder="e.g., 12345 or blank" />
+        </div>
+
+        <div class="flex-between" style="margin-top:6px">
+          <small class="small">Saved key? <button id="forgetKey" class="ghost">Forget</button></small>
+          <small class="small">Demo role app</small>
+        </div>
+
+        <div style="margin-top:8px">
+          <label for="apiEndpoint">API Endpoint (advanced)</label>
+          <input id="apiEndpoint" type="text" value="https://api.openai.com/v1/images/generations" />
+          <small class="small">Change if you're using a self-hosted proxy or updated endpoint.</small>
+        </div>
+      </aside>
+    </div>
+
+    <div id="resultArea" style="margin-top:16px">
+      <div class="images-grid" id="imagesGrid" aria-live="polite"></div>
+    </div>
+
+    <footer class="note">
+      <div class="flex-between">
+        <div>⚠️ <span class="danger">Do not use your production API key in a client-visible app.</span></div>
+        <div>Built with ❤️ for Zoeken AI demo</div>
+      </div>
+    </footer>
+  </div>
+
+  <script>
+    // Zoeken AI — client-side demo image generator
+    // IMPORTANT: This uses client-side fetch to OpenAI. Exposing keys in client is insecure.
+    // For production, run a small server that accepts prompt from the client and forwards to OpenAI with your key.
+
+    const $ = id => document.getElementById(id);
+    const promptEl = $('prompt');
+    const roleEl = $('role');
+    const sizeEl = $('size');
+    const generateBtn = $('generateBtn');
+    const clearBtn = $('clearBtn');
+    const apikeyEl = $('apikey');
+    const imagesGrid = $('imagesGrid');
+    const nEl = $('n');
+    const imgCount = $('imgCount');
+    const forgetKeyBtn = $('forgetKey');
+    const transparentEl = $('transparent');
+    const seedEl = $('seed');
+    const apiEndpointEl = $('apiEndpoint');
+
+    // load saved key from sessionStorage (for convenience)
+    const STORAGE_KEY = 'zoeken_demo_api_key';
+    const saved = sessionStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      apikeyEl.value = saved;
+    }
+
+    // save on change
+    apikeyEl.addEventListener('change', () => {
+      const k = apikeyEl.value.trim();
+      if (k) sessionStorage.setItem(STORAGE_KEY, k);
+      else sessionStorage.removeItem(STORAGE_KEY);
+    });
+    forgetKeyBtn.addEventListener('click', () => {
+      sessionStorage.removeItem(STORAGE_KEY);
+      apikeyEl.value = '';
+      alert('API key removed from sessionStorage for this tab.');
+    });
+
+    clearBtn.addEventListener('click', () => {
+      promptEl.value = '';
+      imagesGrid.innerHTML = '';
+      imgCount.textContent = '0';
+    });
+
+    // Build full prompt combining user prompt + role
+    function buildPrompt() {
+      const base = promptEl.value.trim();
+      const role = roleEl.value.trim();
+      if (!base) return '';
+      // Append role/style instructions politely to guide the model
+      return role ? `${base}\n\nStyle / role: ${role}. Please emphasize ${role} style.` : base;
+    }
+
+    // helper to create data URL thumbnail and card
+    function createImageCard(dataUrl, idx) {
+      const div = document.createElement('div');
+      div.className = 'img-card';
+      const img = document.createElement('img');
+      img.src = dataUrl;
+      img.alt = `Generated image ${idx+1}`;
+      div.appendChild(img);
+
+      const actions = document.createElement('div');
+      actions.className = 'img-actions';
+
+      const dl = document.createElement('a');
+      dl.href = dataUrl;
+      dl.download = `zoeken-image-${Date.now()}-${idx+1}.png`;
+      dl.textContent = 'Download';
+      dl.className = 'ghost';
+      dl.style.padding = '6px 8px';
+      dl.style.fontSize = '13px';
+      dl.style.textDecoration = 'none';
+      dl.style.color = 'inherit';
+      dl.style.borderRadius = '8px';
+      dl.style.border = '1px solid rgba(255,255,255,0.04)';
+      dl.style.textAlign = 'center';
+      actions.appendChild(dl);
+
+      const open = document.createElement('button');
+      open.textContent = 'Open';
+      open.className = 'primary';
+      open.style.padding = '6px 8px';
+      open.style.fontSize = '13px';
+      open.addEventListener('click', () => {
+        const w = window.open();
+        w.document.write('<img style="max-width:100%" src="'+dataUrl+'">');
+      });
+      actions.appendChild(open);
+
+      div.appendChild(actions);
+      return div;
+    }
+
+    // convert base64 string to data URL
+    function base64ToDataUrl(b64, mime='image/png') {
+      return `data:${mime};base64,${b64}`;
+    }
+
+    // call OpenAI Image Generation
+    async function generateImages() {
+      const apiKey = apikeyEl.value.trim();
+      if (!apiKey) { alert('Please paste your OpenAI API key in the right panel.'); return; }
+      const userPrompt = buildPrompt();
+      if (!userPrompt) { alert('Please enter a prompt.'); return; }
+      const size = sizeEl.value;
+      const n = parseInt(nEl.value,10) || 1;
+      const transparent = transparentEl.value === 'true';
+      const endpoint = apiEndpointEl.value.trim() || 'https://api.openai.com/v1/images/generations';
+      const seed = seedEl.value.trim() || undefined;
+
+      generateBtn.disabled = true;
+      generateBtn.textContent = 'Generating...';
+
+      try {
+        // Prepare request body according to typical OpenAI images endpoint format
+        // NOTE: Endpoint and keys can change; adapt to your current API version if necessary.
+        const body = {
+          model: "gpt-image-1",
+          prompt: userPrompt,
+          n: n,
+          size: size,
+          background: transparent ? "transparent" : undefined
+        };
+        // Some implementations use 'seed' or 'prompt_strength' — include seed if provided
+        if (seed) body.seed = Number(seed) || seed;
+
+        const res = await fetch(endpoint, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + apiKey
+          },
+          body: JSON.stringify(body)
+        });
+
+        if (!res.ok) {
+          const text = await res.text();
+          throw new Error(`API error ${res.status}: ${text}`);
+        }
+        const data = await res.json();
+        // The response shape can vary. Many image endpoints return base64 in data.data[i].b64_json
+        // We'll try to handle: data.data[i].b64_json or data.data[i].b64
+        imagesGrid.innerHTML = '';
+        let imagesFound = 0;
+
+        if (Array.isArray(data.data)) {
+          for (let i=0;i<data.data.length;i++){
+            const item = data.data[i];
+            // handle different keys
+            const b64 = item.b64_json || item.b64 || item.image_base64 || item.base64;
+            if (b64) {
+              const dataUrl = base64ToDataUrl(b64);
+              imagesGrid.appendChild(createImageCard(dataUrl, imagesFound));
+              imagesFound++;
+            } else if (item.url) {
+              // sometimes API returns a hosted URL
+              const dataUrl = item.url;
+              // display image with remote url
+              const div = document.createElement('div');
+              div.className = 'img-card';
+              const img = document.createElement('img');
+              img.src = dataUrl;
+              img.alt = `Generated image ${imagesFound+1}`;
+              div.appendChild(img);
+              const actions = document.createElement('div');
+              actions.className = 'img-actions';
+              const dl = document.createElement('a');
+              dl.href = dataUrl;
+              dl.target = '_blank';
+              dl.textContent = 'Open';
+              dl.className = 'ghost';
+              dl.style.padding = '6px 8px';
+              dl.style.fontSize = '13px';
+              dl.style.textDecoration = 'none';
+              dl.style.color = 'inherit';
+              dl.style.borderRadius = '8px';
+              dl.style.border = '1px solid rgba(255,255,255,0.04)';
+              actions.appendChild(dl);
+              div.appendChild(actions);
+              imagesGrid.appendChild(div);
+              imagesFound++;
+            }
+          }
+        } else {
+          // fallback: try b64_json at root
+          const b64 = data.b64_json || (data.image && data.image.b64);
+          if (b64) {
+            const url = base64ToDataUrl(b64);
+            imagesGrid.appendChild(createImageCard(url, 0));
+            imagesFound = 1;
+          }
+        }
+
+        imgCount.textContent = imagesFound;
+        if (imagesFound === 0) {
+          imagesGrid.innerHTML = '<div class="small">No images found in response. The API returned: <pre style="white-space:pre-wrap;max-height:150px;overflow:auto;color:#cbd5e1">'+JSON.stringify(data,null,2)+'</pre></div>';
+        }
+
+      } catch (err) {
+        console.error(err);
+        alert('Error generating images: ' + (err.message || err));
+      } finally {
+        generateBtn.disabled = false;
+        generateBtn.textContent = 'Generate';
+      }
+    }
+
+    generateBtn.addEventListener('click', generateImages);
+
+    // keyboard shortcut: Ctrl/Cmd+Enter to generate
+    document.addEventListener('keydown', (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        generateImages();
+      }
+    });
+
+    // accessibility: role attributes added in markup
+  </script>
+</body>
+</html>
