@@ -1,0 +1,964 @@
+<!doctype html>
+
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <link rel="icon" type="image/png" sizes="16x16" href="logo.png">
+  <title>Zoeken </title>
+  <style>
+    :root{
+      --bg:#ffffff;
+      --muted:#5f6368;
+      --accent:#1a73e8;
+      --card:#ffffff;
+      --glass: rgba(60,64,67,0.04);
+      --radius:12px;
+      --shadow: 0 6px 18px rgba(60,64,67,0.07);
+      font-family: 'Roboto', system-ui, -apple-system, 'Segoe UI', 'Helvetica Neue', Arial;
+      color:#202124;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%;margin:0;background:var(--bg);-webkit-font-smoothing:antialiased}
+    .topbar{position:sticky;top:0;z-index:40;background:var(--bg);border-bottom:1px solid rgba(0,0,0,0.06);display:flex;align-items:center;justify-content:center;padding:12px 0}
+    .topbar-inner{width:100%;max-width:1100px;display:flex;align-items:center;gap:18px;padding:0 18px}
+    .logo{width:56px;height:56px;border-radius:12px;overflow:hidden;display:flex;align-items:center;justify-content:center}
+    .logo img{width:100%;height:100%;object-fit:contain}
+    .search-wrap{flex:1}
+    .search-box{display:flex;align-items:center;border-radius:999px;padding:10px 14px;border:1px solid rgba(0,0,0,0.08);background:var(--card);gap:10px}
+    .search-box input{flex:1;border:0;outline:none;font-size:16px;padding:6px;background:transparent;color:inherit}
+    .btn{border:0;padding:8px 12px;border-radius:8px;cursor:pointer;background:transparent;font-weight:600;color:var(--accent)}
+    .btn.primary{background:var(--accent);color:white;border-radius:999px;padding:10px 16px}
+    .container{display:flex;justify-content:center;padding:20px}
+    .card{width:100%;max-width:1100px;padding:18px;border-radius:12px;box-shadow:var(--shadow);background:transparent}
+    .tabs{display:flex;gap:18px;border-bottom:1px solid rgba(0,0,0,0.06);padding-bottom:12px;margin-top:12px}
+    .tab{padding:8px 10px;cursor:pointer;border-radius:8px;color:var(--muted)}
+    .tab.active{color:var(--accent);font-weight:600;border-bottom:3px solid var(--accent);background:transparent}
+    .content{margin-top:18px;min-height:320px}
+    @media (max-width: 600px) {
+  /* Layout spacing */
+  .topbar-inner {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    padding: 10px;
+  }
+
+  .logo {
+    width: 48px;
+    height: 48px;
+    margin: 0 auto;
+  }
+
+  .search-box {
+    flex-direction: row;
+    gap: 6px;
+    padding: 8px 12px;
+  }
+
+  .search-box input {
+    font-size: 15px;
+  }
+
+  .btn.primary {
+    padding: 8px 12px;
+    font-size: 14px;
+  }
+
+  .tabs {
+    overflow-x: auto;
+    white-space: nowrap;
+    gap: 10px;
+    padding-bottom: 8px;
+    scrollbar-width: none; /* Firefox */
+  }
+  .tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .tab {
+    flex-shrink: 0;
+    font-size: 14px;
+    padding: 6px 8px;
+  }
+
+  .container {
+    padding: 10px;
+  }
+
+  .card {
+    padding: 12px;
+  }
+
+  /* Image grid adjusts for narrow screens */
+  .grid {
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  }
+
+  .video-grid {
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  }
+
+  .video-card iframe {
+    height: 150px;
+  }
+
+  .book img {
+    width: 56px;
+    height: 80px;
+  }
+
+  .news-card img {
+    width: 100px;
+    height: 60px;
+  }
+
+  /* Preview modal mobile-friendly */
+  #imagePreviewModal > div {
+    width: 95%;
+    max-width: 380px;
+    padding: 6px;
+  }
+
+  .img-caption {
+    font-size: 12px;
+  }
+}
+
+    /* results */
+    .result{padding:14px;border-radius:10px;border:1px solid rgba(0,0,0,0.04);margin-bottom:12px;background:linear-gradient(180deg, rgba(255,255,255,0.6), var(--card))}
+    .r-title{font-weight:600;font-size:16px;color:#1a0dab}
+    .r-link{font-size:13px;color:var(--muted);margin-bottom:6px}
+    .r-snippet{color:#3c4043;margin-top:8px}
+    .ai-card{padding:14px;border-radius:10px;border:1px solid rgba(26,115,232,0.12);margin-bottom:12px;background:linear-gradient(180deg, rgba(237,246,255,0.6), #fff)}
+    .ai-title{font-weight:700;color:var(--accent);margin-bottom:6px}
+    /* images grid */
+    .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px}
+    .img-card{border-radius:8px;overflow:hidden;background:var(--glass);display:flex;flex-direction:column;cursor:pointer;min-height:140px}
+    .img-card img{width:100%;height:120px;object-fit:cover;display:block}
+    .img-caption{padding:8px;font-size:13px;color:var(--muted)}
+    /* videos grid */
+    .video-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}
+    .video-card{border-radius:8px;overflow:hidden;background:var(--glass);display:flex;flex-direction:column;min-height:180px}
+    .video-card iframe{width:100%;height:180px;border:0}
+    .video-title{padding:8px;font-size:13px;color:var(--muted)}
+    #micBtn {
+  background: transparent;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  color: var(--muted);
+  transition: color 0.2s ease;
+}
+#micBtn.listening {
+  color: red;
+}
+
+.dropdown-grid {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  background: white;
+  border: 1px solid rgba(0,0,0,0.1);
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  gap: 16px;
+  padding: 16px;
+  z-index: 50;
+  min-width: 300px;
+}
+
+.grid-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-decoration: none;
+  color: #202124;
+  font-weight: 500;
+  transition: background 0.2s;
+  padding: 8px;
+  border-radius: 8px;
+}
+
+.grid-item:hover {
+  background: rgba(26,115,232,0.1);
+}
+.headline a{
+  color:black;
+  text-decoration:none;
+}
+.headline a:hover{
+  text-decoration:underline;
+}
+
+
+.grid-item img {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+  margin-bottom: 6px;
+}
+
+
+    /* books */
+    .book-list{display:flex;flex-direction:column;gap:10px}
+    .book{display:flex;gap:12px;align-items:flex-start;padding:10px;border-radius:8px;border:1px solid rgba(0,0,0,0.04)}
+    .book img{width:72px;height:100px;object-fit:cover;border-radius:6px;background:#f1f3f4}
+    .book .meta .title{font-weight:600}
+    .book .meta .author{color:var(--muted);font-size:13px;margin-top:6px}
+    .news-list{display:flex;flex-direction:column;gap:10px}
+    .news-card{display:flex;gap:12px;align-items:flex-start;padding:10px;border-radius:8px;border:1px solid rgba(0,0,0,0.04)}
+    .news-card img{width:120px;height:72px;object-fit:cover;border-radius:6px;background:#f1f3f4}
+    .news-card .meta .headline{font-weight:600}
+    .news-card .meta .source{color:var(--muted);font-size:13px;margin-top:6px}
+    .small{color:var(--muted);font-size:13px}
+    @media (max-width:880px){
+      .video-grid{grid-template-columns:repeat(auto-fill,minmax(220px,1fr))}
+      .grid{grid-template-columns:repeat(auto-fill,minmax(140px,1fr))}
+    }
+  </style>
+</head>
+  <div class="topbar">
+    <div class="topbar-inner">
+      <div class="logo"><img src="logo.png" alt="Zoeken logo"></div>
+      <div class="search-wrap">
+        <form id="searchForm" class="search-box" autocomplete="off" role="search">
+          <input id="q" name="q" type="search" placeholder="Search — web, images, videos, news, books (with AI)" aria-label="Search" />
+<button type="button" id="micBtn" class="btn" title="Voice Search 🎤">🎙️</button>
+
+
+<button id="btnSearch" type="submit" class="btn primary">Search</button>
+<button type="button" id="aiSpeechBtn" class="btn" title="Read Zoeken AI Summary 🗣️">🗣️</button>
+
+        </form>
+        
+      </div>
+      <div class="menu-dropdown" style="position:relative;">
+  <button id="menuBtn" class="btn" style="display:flex;align-items:center;gap:6px;">
+    ☰ Apps
+  </button>
+  <div id="menuContent" class="dropdown-grid" style="display:none;">
+    <a href="zoeken translate.html" class="grid-item">
+      <img src="logo.png" alt="Zoeken" />
+      <span>Zoeken Translate</span>
+    </a>
+       <a href="#" class="grid-item">
+      <img src="logo.png" alt="Zoken Account" />
+      <span>Zoken Library</span>
+    </a>
+      <a href="zoekennews.html" class="grid-item">
+      <img src="logo.png" alt="Zoken Translate" />
+      <span>Zoken News</span>
+    </a>
+   
+
+    <a href="#" class="grid-item">
+      <img src="logo.png" alt="Zoken Account" />
+      <span>Zoken Account</span>
+    </a>
+    
+    <a href="zoeken code.html" class="grid-item">
+  <img src="logo.png" alt="Zoeken Code" />
+  <span>Zoeken AI Code Assistant</span>
+</a>
+    
+     <a href="#" class="grid-item">
+      <img src="logo.png" alt="Zoken Translate" />
+      <span>Zoken Maps</span>
+    </a>
+        <a href="#" target="_blank" class="grid-item">
+      <img src="logo.png" alt="YouTube" />
+      <span>Settings</span>
+    </a>
+   <a href="zoeken ai.html" class="grid-item">
+      <img src="logo.png" alt="Zoken Translate" />
+      <span>Zoken Chat Bot</span>
+    </a>
+              <a href="zoeken ai img gen.html" class="grid-item">
+  <img src="logo.png" alt="Help" />
+  <span>Zoken Img Gen</span>
+</a>
+ <a href="zoeken class.html" class="grid-item">
+      <img src="logo.png" alt="Zoken Translate" />
+      <span>Zoken AI Classroom</span>
+    </a>
+    </a>
+  </div>
+</div>
+<!-- URL Bar -->
+<div class="url-bar" style="display:flex;gap:6px;align-items:center">
+  <input id="urlInput" type="url" placeholder="Enter a URL to open" style="flex:1;padding:6px 10px;border:1px solid rgba(0,0,0,0.2);border-radius:8px;font-size:14px">
+  <button id="openUrlBtn" class="btn primary">Go</button>
+</div>
+<div class="pagination" style="
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    padding: 10px 0;
+    background: #ffffff;
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    box-shadow: 0 -2px 5px rgba(0,0,0,0.1);
+">
+  <button class="btn" id="prevBtn">Previous</button>
+  <span id="pageIndicator">Page 1</span>
+  <button class="btn" id="nextBtn">Next</button>
+</div>
+
+
+
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="card">
+      <nav class="tabs" role="tablist" aria-label="Search tabs">
+        <div class="tab active" data-tab="all" role="tab" tabindex="0">All</div>
+        <div class="tab" data-tab="images" role="tab" tabindex="0">Images</div>
+        <div class="tab" data-tab="videos" role="tab" tabindex="0">Videos</div>
+        <div class="tab" data-tab="news" role="tab" tabindex="0">News</div>
+        <div class="tab" data-tab="books" role="tab" tabindex="0">Books</div>
+      </nav>
+
+      <div class="content" id="contentArea">
+        <!-- Homepage News (Google-style) -->
+<div id="homeNews" style="display:block;margin-bottom:20px">
+  <h3 style="margin-bottom:10px">📰 Latest News</h3>
+  <div id="homeNewsList" class="news-list"></div>
+</div>
+
+        <!-- All -->
+        <div id="panel-all" class="panel">
+          <div id="metaAll" class="small" style="margin-bottom:8px"></div>
+          <div id="aiAnswer"></div> <!-- ChatGPT card -->
+          <div id="wikiSummary"></div> <!-- Wikipedia summary -->
+          <div id="results"></div>
+        </div>
+
+        <!-- Images -->
+        <div id="panel-images" class="panel" style="display:none">
+          <div id="metaImages" class="small" style="margin-bottom:8px"></div>
+          <div id="imagesGrid" class="grid"></div>
+          <!-- inline preview modal -->
+          <div id="imagePreviewModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);align-items:center;justify-content:center;z-index:60">
+            <div style="max-width:90%;max-height:90%;background:white;padding:8px;border-radius:10px;display:flex;flex-direction:column">
+              <img id="imagePreviewImg" src="" style="max-width:100%;max-height:80vh;border-radius:6px;display:block">
+              <div style="margin-top:8px;display:flex;justify-content:flex-end">
+                <button id="closePreview" class="btn">Close</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Videos -->
+        <div id="panel-videos" class="panel" style="display:none">
+          <div id="metaVideos" class="small" style="margin-bottom:8px"></div>
+          <div id="videosGrid" class="video-grid"></div>
+        </div>
+
+        <!-- News -->
+        <div id="panel-news" class="panel" style="display:none">
+          <div id="metaNews" class="small" style="margin-bottom:8px"></div>
+          <div id="newsList" class="news-list"></div>
+          <div id="homeNewsList"></div>
+        </div>
+
+        <!-- Books -->
+        <div id="panel-books" class="panel" style="display:none">
+          <div id="metaBooks" class="small" style="margin-bottom:8px"></div>
+          <div id="booksList" class="book-list"></div>
+
+          
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+/* -------------------- Config -------------------- */
+const OPENAI_KEY = "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";
+const PEXELS_API_KEY = "Raq63E0SFpeDD0zTCr1GeKpXBGCYkhnP1KH1HPtPWNrxZPvFWfmQVRtM";
+const YOUTUBE_API_KEY = "AIzaSyA0v0xRWpcev7FEu-YcvhkqG1GKrrqLMc4";
+
+/* -------------------- Helpers -------------------- */
+const $ = (sel, ctx=document) => ctx.querySelector(sel);
+const $$ = (sel, ctx=document) => Array.from((ctx||document).querySelectorAll(sel));
+const escapeHtml = s => s ? String(s).replace(/[&<>\"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#39;"}[c])) : '';
+
+/* -------------------- Elements -------------------- */
+const qInput = $('#q');
+const form = $('#searchForm');
+const tabs = $$('.tab');
+const panels = {
+  all: $('#panel-all'),
+  images: $('#panel-images'),
+  videos: $('#panel-videos'),
+  news: $('#panel-news'),
+  books: $('#panel-books')
+};
+const resultsEl = $('#results');
+const metaAll = $('#metaAll');
+const imagesGrid = $('#imagesGrid');
+const metaImages = $('#metaImages');
+const imagePreviewModal = $('#imagePreviewModal');
+const imagePreviewImg = $('#imagePreviewImg');
+const closePreview = $('#closePreview');
+const videosGrid = $('#videosGrid');
+const metaVideos = $('#metaVideos');
+const newsList = $('#newsList');
+const metaNews = $('#metaNews');
+const booksList = $('#booksList');
+const metaBooks = $('#metaBooks');
+const homeNewsBox = document.getElementById("homeNews");
+const homeNewsList = document.getElementById("homeNewsList");
+const aiAnswerEl = $('#aiAnswer');
+const wikiSummaryEl = $('#wikiSummary');
+const urlInput = $('#urlInput');
+const openUrlBtn = $('#openUrlBtn');
+const prevBtn = $('#prevBtn');
+const nextBtn = $('#nextBtn');
+const pageIndicator = $('#pageIndicator');
+const micBtn = $('#micBtn');
+const aiSpeechBtn = $('#aiSpeechBtn');
+
+/* -------------------- State -------------------- */
+let currentPage = { images:1, videos:1, news:1, books:1 };
+let currentQuery = '';
+let youtubePageTokens = {}; // { query: { prev:'', next:'' } }
+
+/* -------------------- Tabs -------------------- */
+tabs.forEach(t => {
+  t.addEventListener('click', ()=>setTab(t.dataset.tab));
+  t.addEventListener('keydown', (e)=> { if(e.key === 'Enter') setTab(t.dataset.tab); });
+});
+function setTab(name){
+  tabs.forEach(t=>t.classList.toggle('active', t.dataset.tab===name));
+  Object.entries(panels).forEach(([k,el])=> el.style.display = (k===name) ? 'block' : 'none');
+  updatePageIndicator();
+}
+
+/* -------------------- Keyboard shortcut for search -------------------- */
+window.addEventListener('keydown', e=>{
+  if((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k'){ 
+    e.preventDefault(); 
+    qInput.focus(); 
+  }
+});
+
+/* -------------------- URL bar -------------------- */
+openUrlBtn.addEventListener('click', ()=>{
+  const url = urlInput.value.trim();
+  if(url) window.location.href = url;
+});
+
+/* -------------------- Search submit -------------------- */
+form.addEventListener('submit', e=>{
+  e.preventDefault();
+  const q = qInput.value.trim();
+  if(!q) return;
+  runAll(q);
+});
+
+/* -------------------- Run all searches -------------------- */
+async function runAll(query){
+
+  // FIX 3: hide homepage news when searching
+  homeNewsBox.style.display = "none";
+
+  currentQuery = query;
+  currentPage = { images:1, videos:1, news:1, books:1 };
+  youtubePageTokens[query] = { next:'', prev:'' };
+
+  setTab('all');
+
+  resultsEl.innerHTML = ''; 
+  imagesGrid.innerHTML = ''; 
+  videosGrid.innerHTML = ''; 
+  newsList.innerHTML = ''; 
+  booksList.innerHTML = '';
+  
+  metaAll.textContent = `Searching "${query}"...`; 
+  metaImages.textContent = `Searching images for "${query}"...`; 
+  metaVideos.textContent = `Searching videos for "${query}"...`; 
+  metaNews.textContent =
+   `Searching news for "${query}"...`; 
+  metaBooks.textContent = `Searching books for "${query}"...`;
+  
+  aiAnswerEl.innerHTML = ''; 
+  wikiSummaryEl.innerHTML = '';
+
+  fetchChatGPTAnswer(query).catch(console.warn);
+  runWiki(query).catch(console.warn);
+  runWeb(query).catch(console.warn);
+  fetchPexelsImages(query, currentPage.images).catch(console.warn);
+  fetchVideos(query, currentPage.videos).catch(console.warn);
+  fetchNews(query, currentPage.news).catch(console.warn);
+  fetchBooks(query, currentPage.books).catch(console.warn);
+}
+
+
+/* -------------------- ChatGPT Answer -------------------- */
+async function fetchChatGPTAnswer(query) {
+  aiAnswerEl.innerHTML = `<div class="ai-card"><div class="ai-title">🧠 Zoeken AI — generating summary…</div><div class="small"></div></div>`;
+  if(!OPENAI_KEY || OPENAI_KEY.includes('REPLACE')) return;
+  try {
+    const payload = {
+      model: "gpt-4o-mini",
+      messages: [
+        {
+  role: "system",
+  content: "Your name is Zoeken AI. Provide a concise (3-6 sentences), highly logical and analytical summary. Focus on identifying patterns, interp relationships, and cause-effect connections. Prioritize clarity, accuracy, and structured reasoning. Avoid irrelevant or inappropriate content."
+},
+
+        { role: "user", content: `Summarize: "${query}" concisely.` }
+      ],
+      max_tokens: 220,
+      temperature: 0.2
+    };
+    const res = await fetch("https://api.openai.com/v1/chat/completions", {
+      method:"POST",
+      headers: {"Content-Type":"application/json","Authorization":`Bearer ${OPENAI_KEY}`},
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    const answer = data.choices?.[0]?.message?.content || "No response.";
+    aiAnswerEl.innerHTML = `<div class="ai-card"><div class="ai-title">🧠 Zoeken AI</div><div class="r-snippet">${escapeHtml(answer)}</div></div>`;
+  } catch(err){
+    console.error(err);
+    aiAnswerEl.innerHTML = `<div class="ai-card"><div class="ai-title">AI error</div><div class="small">${escapeHtml(err.message)}</div></div>`;
+  }
+}
+
+/* -------------------- Wikipedia -------------------- */
+async function runWiki(query){
+  wikiSummaryEl.innerHTML = `<div class="small">Loading Wikipedia summary…</div>`;
+  try {
+    const summaryRes = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(query)}`);
+    if(summaryRes.ok){
+      const s = await summaryRes.json();
+      let html = `<div class="result"><div class="r-title">${escapeHtml(s.title||query)}</div>`;
+      if(s.extract) html += `<div class="r-snippet">${escapeHtml(s.extract)}</div>`;
+      if(s.content_urls?.desktop?.page){
+        html += `<div style="margin-top:8px"><a class="btn" href="${escapeHtml(s.content_urls.desktop.page)}" target="_blank">Read on Wikipedia</a></div>`;
+      }
+      html += `</div>`;
+      wikiSummaryEl.innerHTML = html;
+    } else wikiSummaryEl.innerHTML = `<div class="small">No exact Wikipedia summary found.</div>`;
+  } catch(err){
+    wikiSummaryEl.innerHTML = `<div class="small">Wikipedia fetch failed.</div>`;
+    console.warn(err);
+  }
+}
+
+/* -------------------- Web Search -------------------- */
+async function runWeb(query) {
+  const resultsContainer = document.getElementById("results");
+  resultsContainer.innerHTML = `
+    <div class="result loading">
+      <div class="title">Searching the web for “${escapeHtml(query)}”...</div>
+      <div class="snippet muted">Please wait...</div>
+    </div>
+  `;
+
+  if (!OPENAI_KEY || OPENAI_KEY.includes("REPLACE")) {
+    console.warn("OPENAI_KEY missing or placeholder — falling back to DuckDuckGo.");
+    return renderDuckDuckGoFallback(query, resultsContainer);
+  }
+
+  try {
+    // --- Step 1: Check if query looks like a website ---
+    let possibleUrl = query.toLowerCase().replace(/\s+/g,'');
+    let isWebsiteQuery = /^[\w-]+\.(com|org|net|io|co)$/i.test(possibleUrl); // simple TLD check
+    if (isWebsiteQuery && !/^https?:\/\//i.test(possibleUrl)) possibleUrl = "https://www." + possibleUrl;
+
+    let officialSiteExists = false;
+    if (isWebsiteQuery) {
+      try {
+        await fetch(possibleUrl, { method: "HEAD", mode: "no-cors" });
+        officialSiteExists = true;
+      } catch(e) {
+        officialSiteExists = true; // assume exists if blocked
+      }
+    }
+
+    // --- Step 2: Use ChatGPT multi-brain search ---
+    const payload = {
+      model: "gpt-4.1-mini",
+      tools: [{ type: "web_search" }],
+      input: `You are a smart website search assistant.
+Search the web for: "${query}".
+Return top 8 results as a JSON array ONLY (no extra commentary) in this format:
+[
+  { "title": "Page title", "url": "https://...", "snippet": "1-2 sentence summary" }
+]
+Rules:
+- If the query is a website or official brand (like YouTube, Wikipedia), prioritize official URL first.
+- If it's a YouTube channel or video, include the direct link.
+- If not a website, include related/popular pages, summaries, or Wikipedia link if relevant.
+- Return empty array if nothing found.`,
+      temperature: 0.1,
+      max_output_tokens: 800
+    };
+
+    const res = await fetch("https://api.openai.com/v1/responses", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${OPENAI_KEY}`
+      },
+      body: JSON.stringify(payload)
+    });
+
+    const data = await res.json();
+    let text = "";
+    if (Array.isArray(data.output) && data.output.length) {
+      text = data.output.map(o => (o.content || []).map(c => c.text || "").join("")).join("\n\n");
+    } else if (data.output_text) {
+      text = data.output_text;
+    } else {
+      text = JSON.stringify(data);
+    }
+
+    // --- Step 3: Extract JSON results ---
+    let results = [];
+    const arrayMatch = text.match(/\[[\s\S]*\]/);
+    if (arrayMatch) {
+      try { results = JSON.parse(arrayMatch[0]); }
+      catch(e){ 
+        const sanitize = s => s.replace(/,\s*]/g, "]").replace(/,\s*}/g, "}").replace(/([\w]+):/g, (m,p)=> `"${p}":`).replace(/'/g, '"');
+        try { results = JSON.parse(sanitize(arrayMatch[0])); } catch(e2){ results = []; }
+      }
+    }
+
+    // --- Step 4: Add official site only if query is a website ---
+    if (isWebsiteQuery && officialSiteExists && !results.some(r => r.url?.includes(possibleUrl))) {
+      results.unshift({
+        title: query + " Official Website",
+        url: possibleUrl,
+        snippet: "Official site of " + query
+      });
+    }
+
+    // --- Step 5: Fallback to DuckDuckGo if no results ---
+    if (!results.length) return renderDuckDuckGoFallback(query, resultsContainer);
+
+    // --- Step 6: Render results ---
+// --- Step 6: Render results ---
+resultsContainer.innerHTML = results.map(r => `
+  <div class="result">
+    <a href="${escapeHtml(r.url)}" class="r-title">${escapeHtml(r.title)}</a>
+    <div class="r-link">${escapeHtml(r.url)}</div>
+    <div class="r-snippet">${escapeHtml(r.snippet || '')}</div>
+  </div>
+`).join("");
+
+
+  } catch (err) {
+    console.error("runWeb error:", err);
+    await renderDuckDuckGoFallback(query, resultsContainer);
+  }
+}
+
+
+
+/* -------------------- Images -------------------- */
+async function fetchPexelsImages(query, page = 1) {
+  metaImages.textContent = `Images for "${query}" — page ${page}`;
+  const res = await fetch(`https://api.pexels.com/v1/search?query=${encodeURIComponent(query)}&per_page=12&page=${page}`, {
+    headers: { Authorization: PEXELS_API_KEY }
+  });
+  const data = await res.json();
+
+  // Append instead of replacing
+  imagesGrid.innerHTML += data.photos.map(p => `
+    <div class="img-card">
+      <img src="${p.src.medium}" alt="${escapeHtml(p.alt)}" />
+      <div class="img-caption">${escapeHtml(p.photographer)}</div>
+    </div>
+  `).join("");
+}
+
+/* -------------------- Videos -------------------- */
+async function fetchVideos(query, page = 1) {
+  const res = await fetch(`https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json`);
+  const data = await res.json();
+
+  metaVideos.textContent = `Search results for "${query}"`;
+  videosGrid.innerHTML = `
+    <h3>${data.Heading || "Results"}</h3>
+    ${data.RelatedTopics.map(item => `
+      <div class="video-card">
+        ${item.Icon?.URL ? `<img src="https://duckduckgo.com${item.Icon.URL}" alt="">` : ""}
+        <div class="video-title">${item.Text || "No title"}</div>
+        <a href="${item.FirstURL}" target="_blank">View</a>
+      </div>
+    `).join("")}
+  `;
+}
+
+
+/* -------------------- GNews Config -------------------- */
+const HOME_NEWS_API_KEY = "0570b26fc4268cb2e3c54a01ec226625";
+let homeNewsPage = 1;
+let searchNewsPage = 1;
+
+/* -------------------- Homepage News (PLENTY) -------------------- */
+async function loadHomeNews(reset = true) {
+  if (reset) homeNewsList.innerHTML = `<div class="small">Loading news…</div>`;
+
+  try {
+    // ❌ removed country filter (free-plan safe)
+    const res = await fetch(
+      `https://gnews.io/api/v4/top-headlines?lang=en&max=10&page=${homeNewsPage}&token=${HOME_NEWS_API_KEY}`
+    );
+
+    const data = await res.json();
+    console.log("Home news:", data); // debug
+
+    if (!data.articles || !data.articles.length) {
+      if (reset) homeNewsList.innerHTML = `<div class="small">No news available.</div>`;
+      return;
+    }
+
+    if (reset) homeNewsList.innerHTML = "";
+
+    data.articles.forEach(a => {
+      homeNewsList.insertAdjacentHTML("beforeend", `
+        <div class="news-card">
+          <img src="${a.image || 'https://via.placeholder.com/160x96'}">
+          <div class="meta">
+            <div class="headline">${escapeHtml(a.title)}</div>
+            <div class="source">
+              ${escapeHtml(a.source.name)} • ${new Date(a.publishedAt).toLocaleDateString()}
+            </div>
+          </div>
+        </div>
+      `);
+    });
+
+    // auto load more homepage news
+    homeNewsPage++;
+
+  } catch (e) {
+    console.error("Home news error:", e);
+    homeNewsList.innerHTML = `<div class="small">Unable to load news.</div>`;
+  }
+}
+
+/* -------------------- Search News (PLENTY) -------------------- */
+async function fetchNews(query, reset = true) {
+  if (reset) {
+    newsList.innerHTML = `<div class="small">Loading news…</div>`;
+    searchNewsPage = 1;
+  }
+
+  try {
+    const safeQuery = query?.trim() || "latest";
+
+    const res = await fetch(
+      `https://gnews.io/api/v4/search?q=${encodeURIComponent(safeQuery)}&lang=en&max=10&page=${searchNewsPage}&token=${HOME_NEWS_API_KEY}`
+    );
+
+    const data = await res.json();
+    console.log("Search news:", data); // debug
+
+    if (!data.articles || !data.articles.length) {
+      if (reset) newsList.innerHTML = `<div class="small">No news found.</div>`;
+      return;
+    }
+
+    if (reset) newsList.innerHTML = "";
+
+    metaNews.textContent = `News for "${safeQuery}" — page ${searchNewsPage}`;
+
+    data.articles.forEach(a => {
+      newsList.insertAdjacentHTML("beforeend", `
+        <div class="news-card">
+          <img src="${a.image || 'https://via.placeholder.com/160x96'}">
+          <div class="meta">
+            <div class="headline">${escapeHtml(a.title)}</div>
+            <div class="source">
+              ${escapeHtml(a.source.name)} • ${new Date(a.publishedAt).toLocaleDateString()}
+            </div>
+          </div>
+        </div>
+      `);
+    });
+
+    searchNewsPage++;
+
+  } catch (err) {
+    console.error("fetchNews error:", err);
+    newsList.innerHTML = `<div class="small">Unable to load news.</div>`;
+  }
+}
+
+/* -------------------- Auto-load Homepage News -------------------- */
+window.addEventListener("DOMContentLoaded", () => {
+  homeNewsBox.style.display = "block"; // show homepage news
+  loadHomeNews();
+
+
+  // load more headlines every 60s
+  setInterval(() => loadHomeNews(false), 1800000);
+});
+
+
+
+/* -------------------- Books -------------------- */
+async function fetchBooks(query, page = 1) {
+  const pageSize = 10;
+  try {
+    const startIndex = (page - 1) * pageSize;
+    const url = `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&startIndex=${startIndex}&maxResults=${pageSize}`;
+    const res = await fetch(url);
+    const data = await res.json();
+    const items = data.items || [];
+
+    booksList.innerHTML = items.map(it => {
+      const info = it.volumeInfo;
+      const title = escapeHtml(info.title || 'No title');
+      const authors = escapeHtml((info.authors || []).join(', ') || 'Unknown');
+      const img = info.imageLinks?.thumbnail || 'placeholder.jpg'; // fallback if no image
+      const link = escapeHtml(info.infoLink);
+
+      return `
+        <div class="result">
+          <img src="${img}" alt="${title}" class="book-cover">
+          <div class="r-title">${title}</div>
+          <div class="r-snippet">By: ${authors}</div>
+          <a href="${link}" class="btn">More info</a>
+        </div>
+      `;
+    }).join('');
+
+    metaBooks.textContent = `Page ${page} — Showing ${items.length} books for "${query}"`;
+  } catch (err) {
+    console.warn(err);
+    metaBooks.textContent = 'Error loading books.';
+  }
+}
+
+
+/* -------------------- Image Preview Modal -------------------- */
+closePreview.addEventListener('click', ()=> imagePreviewModal.style.display='none');
+imagePreviewModal.addEventListener('click', e=>{ if(e.target===imagePreviewModal) imagePreviewModal.style.display='none'; });
+
+/* -------------------- Pagination -------------------- */
+prevBtn.addEventListener('click', ()=>changePage(-1));
+nextBtn.addEventListener('click', ()=>changePage(0));
+function changePage(dir){
+  const activeTab = tabs.find(t=>t.classList.contains('active'))?.dataset.tab || 'all';
+  if(activeTab==='all'){ return; } // no pagination for AI/Web
+  let page = currentPage[activeTab] + dir;
+  if(page<1) page=1;
+  currentPage[activeTab] = page;
+  runPage(activeTab);
+}
+
+function runPage(tab){
+  const page = currentPage[tab];
+  switch(tab){
+    case 'images': fetchPexelsImages(currentQuery,page); break;
+    case 'videos': fetchVideos(currentQuery,page); break;
+    case 'news': fetchNews(currentQuery,page); break;
+    case 'books': fetchBooks(currentQuery,page); break;
+  }
+  updatePageIndicator();
+}
+
+function updatePageIndicator(){
+  const activeTab = tabs.find(t=>t.classList.contains('active'))?.dataset.tab || 'all';
+  if(activeTab==='all'){
+    pageIndicator.textContent='Page N/A';
+    prevBtn.disabled=true;
+    nextBtn.disabled=true;
+  } else {
+    const page = currentPage[activeTab] || 1;
+    pageIndicator.textContent=`Page ${page}`;
+    prevBtn.disabled = page <= 1;
+    nextBtn.disabled = false;
+  }
+}
+
+/* -------------------- Voice Search -------------------- */
+let recognition;
+micBtn.addEventListener('click', ()=>{
+  if(!('webkitSpeechRecognition' in window)) return alert('Voice search not supported.');
+  if(!recognition){
+    recognition = new webkitSpeechRecognition();
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    recognition.lang = 'en-US';
+    recognition.onresult = e=> { qInput.value = e.results[0][0].transcript; runAll(qInput.value); };
+    recognition.onerror = e=>console.warn(e);
+  }
+  recognition.start();
+});
+
+/* -------------------- AI Speech -------------------- */
+
+
+// ensure voices are loaded before using them
+let voices = [];
+
+function loadVoices() {
+  voices = speechSynthesis.getVoices();
+  if (!voices.length) {
+    // if not yet loaded, retry when the voiceschanged event fires
+    speechSynthesis.onvoiceschanged = () => {
+      voices = speechSynthesis.getVoices();
+    };
+  }
+}
+loadVoices();
+
+aiSpeechBtn.addEventListener('click', () => {
+  const text = aiAnswerEl.innerText.trim();
+  if (!text) return;
+
+  const utter = new SpeechSynthesisUtterance(text);
+  utter.lang = 'en-US';
+
+  // Try to find a female-sounding voice
+  const femaleVoice = voices.find(v =>
+    /female|woman|zira|samantha|victoria|karen|google us english|google uk english female/i.test(v.name)
+  );
+
+  utter.voice = femaleVoice || voices.find(v => v.lang.startsWith('en')) || null;
+
+  // Optional tone adjustment
+  utter.pitch = 1.1; // slightly higher pitch for feminine tone
+  utter.rate = 1;
+
+  speechSynthesis.cancel(); // stop ongoing speech
+  speechSynthesis.speak(utter);
+});
+
+// menu toggle
+const menuBtn = document.getElementById('menuBtn');
+const menuContent = document.getElementById('menuContent');
+
+menuBtn.addEventListener('click', () => {
+  menuContent.style.display = menuContent.style.display === 'grid' ? 'none' : 'grid';
+});
+
+
+// Close dropdown when clicking outside
+window.addEventListener('click', e => {
+  if (!menuBtn.contains(e.target) && !menuContent.contains(e.target)) {
+    menuContent.style.display = 'none';
+  }
+});
+window.addEventListener("DOMContentLoaded", () => {
+  loadHomeNews();
+});
+
+</script>
+</body>
+</html>
