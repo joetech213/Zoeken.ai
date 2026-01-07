@@ -381,9 +381,21 @@
 
 <script>
 /* -------------------- Config -------------------- */
-const OPENAI_KEY = "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";
-const PEXELS_API_KEY = "Raq63E0SFpeDD0zTCr1GeKpXBGCYkhnP1KH1HPtPWNrxZPvFWfmQVRtM";
-const YOUTUBE_API_KEY = "AIzaSyA0v0xRWpcev7FEu-YcvhkqG1GKrrqLMc4";
+async function fetchChatGPTAnswer(query) {
+  aiAnswerEl.innerHTML = `<div class="ai-card"><div class="ai-title">🧠 Zoeken AI — generating summary…</div></div>`;
+  try {
+    // send query to your server
+    const res = await fetch("/ai", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ query })
+    });
+    const data = await res.json();
+    aiAnswerEl.innerHTML = `<div class="ai-card"><div class="ai-title">🧠 Zoeken AI</div><div class="r-snippet">${data.answer}</div></div>`;
+  } catch (err) {
+    aiAnswerEl.innerHTML = `<div class="ai-card"><div class="ai-title">AI error</div><div class="small">${err.message}</div></div>`;
+  }
+}
 
 /* -------------------- Helpers -------------------- */
 const $ = (sel, ctx=document) => ctx.querySelector(sel);
@@ -520,11 +532,12 @@ async function fetchChatGPTAnswer(query) {
       max_tokens: 220,
       temperature: 0.2
     };
-    const res = await fetch("https://api.openai.com/v1/chat/completions", {
-      method:"POST",
-      headers: {"Content-Type":"application/json","Authorization":`Bearer ${OPENAI_KEY}`},
-      body: JSON.stringify(payload)
-    });
+   const res = await fetch("/ai", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ query })
+});
+
     const data = await res.json();
     const answer = data.choices?.[0]?.message?.content || "No response.";
     aiAnswerEl.innerHTML = `<div class="ai-card"><div class="ai-title">🧠 Zoeken AI</div><div class="r-snippet">${escapeHtml(answer)}</div></div>`;
